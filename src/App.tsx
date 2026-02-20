@@ -25,6 +25,7 @@ import Coupons from "./pages/Coupons";
 import Shop from "./shop/Shop";
 import PublicProductDetails from "./shop/PublicProductDetails";
 import { CartProvider } from "./context/CartContext";
+import Cart from "./shop/Cart";
 
 function App() {
   return (
@@ -48,6 +49,14 @@ function App() {
               <PublicProductDetails />
             </CartProvider>
           }
+        />
+        <Route 
+          path="/cart" 
+          element={
+            <CartProvider>
+              <Cart />
+            </CartProvider>
+          } 
         />
 
         {/* ================= AUTH ROUTES ================= */}

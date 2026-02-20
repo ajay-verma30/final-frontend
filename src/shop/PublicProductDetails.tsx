@@ -96,6 +96,7 @@ export default function PublicProductDetails() {
   const [wishlist, setWishlist] = useState(false);
   const [imageZoomed, setImageZoomed] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
+  const [isCartLoading, setIsCartLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "sizing" | "shipping">("details");
   const { isAuthenticated } = useAuth();
   const { addToCart } = useCart();
@@ -214,6 +215,7 @@ export default function PublicProductDetails() {
     }
     if (!selectedVariant || !selectedImage) return;
 
+    setIsCartLoading(true);
     try {
       const activeCustomizations = filteredCustomizations.filter((c) =>
         selectedCustomizations.has(c.id)
@@ -257,10 +259,12 @@ export default function PublicProductDetails() {
         });
       }
 
+      setIsCartLoading(false);
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);
     } catch (error) {
       console.error("Cart error:", error);
+      setIsCartLoading(false);
     }
   };
   // Get active price tier (applies to variant_price portion only)
@@ -785,19 +789,33 @@ export default function PublicProductDetails() {
               <div className="flex gap-3">
                 <button
                   onClick={handleAddToCart}
-                  disabled={!inStock}
+                  disabled={!inStock || isCartLoading}
                   className="add-btn jost flex-1 py-4 px-4 rounded-xl font-semibold text-sm tracking-widest uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   style={{
                     background: addedToCart ? '#38a169' : '#2a1f14',
                     color: 'white',
                   }}
                 >
-                  <ShoppingBag size={16} />
-                  <span>{addedToCart ? 'Added to Cart!' : 'Add to Cart'}</span>
-                  {!addedToCart && (
-                    <span className="ml-auto pl-4 border-l border-white/30 font-black">
-                      ${totalPrice.toFixed(2)}
-                    </span>
+                  {isCartLoading ? (
+                    <>
+                      <div
+                        className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"
+                      />
+                      <span>Adding...</span>
+                    </>
+                  ) : addedToCart ? (
+                    <>
+                      <ShoppingBag size={16} />
+                      <span>Added to Cart!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag size={16} />
+                      <span>Add to Cart</span>
+                      <span className="ml-auto pl-4 border-l border-white/30 font-black">
+                        ${totalPrice.toFixed(2)}
+                      </span>
+                    </>
                   )}
                 </button>
 
