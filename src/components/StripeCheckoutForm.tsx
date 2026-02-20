@@ -23,7 +23,8 @@ const StripeCheckoutForm: React.FC<Props> = ({ amount, onSuccess }) => {
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/coupons?payment_success=true`,
+        // Fallback redirect URL — only used if redirect is required (e.g. 3D Secure)
+        return_url: `${window.location.origin}/orders`,
       },
       redirect: 'if_required',
     });
@@ -39,6 +40,7 @@ const StripeCheckoutForm: React.FC<Props> = ({ amount, onSuccess }) => {
     }
 
     if (paymentIntent && paymentIntent.status === 'succeeded') {
+      // onSuccess clears the cart and navigates to /orders
       onSuccess();
     }
 
@@ -60,10 +62,13 @@ const StripeCheckoutForm: React.FC<Props> = ({ amount, onSuccess }) => {
       <button
         type="submit"
         disabled={isLoading || !stripe || !elements}
-        className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 disabled:bg-slate-300"
+        className="w-full py-4 rounded-2xl font-semibold text-base flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        style={{ background: "#2a1f14", color: "white", fontFamily: "'Jost', sans-serif", letterSpacing: "0.1em" }}
       >
-        {isLoading ? <Loader2 className="animate-spin" size={20} /> : <ShieldCheck size={20} />}
-        {isLoading ? "Verifying..." : `Pay $${amount} & Send Coupons`}
+        {isLoading
+          ? <><Loader2 className="animate-spin" size={18} /> Processing...</>
+          : <><ShieldCheck size={18} /> Pay ${amount}</>
+        }
       </button>
     </form>
   );

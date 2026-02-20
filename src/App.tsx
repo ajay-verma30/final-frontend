@@ -24,6 +24,8 @@ import CustomizeProduct from "./pages/CustomizeProduct";
 import Coupons from "./pages/Coupons";
 import Shop from "./shop/Shop";
 import PublicProductDetails from "./shop/PublicProductDetails";
+import Checkout from "./shop/Checkout";
+import OrderHistory from "./shop/Orderhistory";
 import { CartProvider } from "./context/CartContext";
 import Cart from "./shop/Cart";
 
@@ -58,6 +60,22 @@ function App() {
             </CartProvider>
           } 
         />
+        <Route
+  path="/checkout"
+  element={
+    <CartProvider>
+      <Checkout />
+    </CartProvider>
+  }
+/>
+<Route
+  path="/orders"
+  element={
+    <CartProvider>
+      <OrderHistory />
+    </CartProvider>
+  }
+/>
 
         {/* ================= AUTH ROUTES ================= */}
         <Route path="/login" element={<Login />} />

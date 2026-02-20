@@ -6,6 +6,7 @@ import {
   User, Mail, Phone, Shield, Building2, Calendar, 
   CheckCircle2, Lock, Loader2, Camera, X, Save, MapPin, Plus, Trash2, AlertCircle, Edit2
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 // Types
 interface SavedAddress {
@@ -35,6 +36,8 @@ const Profile: React.FC = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const showSidebar = user?.role === 'SUPER' || user?.role === 'ADMIN';
   
   // Modals
   const [showPassModal, setShowPassModal] = useState(false);
@@ -240,8 +243,8 @@ const Profile: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100 font-sans">
-      <Sidebar />
-      <div className="flex-grow flex flex-col overflow-hidden">
+  {showSidebar && <Sidebar />} 
+  <div className="flex-grow flex flex-col overflow-hidden">
         <Navbar />
         <main className="flex-grow overflow-y-auto p-4 md:p-8">
           <div className="max-w-6xl mx-auto space-y-6">
