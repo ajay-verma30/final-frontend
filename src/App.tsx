@@ -11,7 +11,6 @@ import Categories from "./pages/Categories";
 import SubCategories from "./pages/SubCategories";
 import NotFound from "./pages/NotFound";
 
-// ProtectedRoute component import karein
 import ProtectedRoute from "../src/components/ProtectedRoute";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
@@ -25,20 +24,38 @@ import CustomizeProduct from "./pages/CustomizeProduct";
 import Coupons from "./pages/Coupons";
 import Shop from "./shop/Shop";
 import PublicProductDetails from "./shop/PublicProductDetails";
+import { CartProvider } from "./context/CartContext";
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* ================= PUBLIC ROUTES ================= */}
+        {/* ================= PUBLIC / SHOP ROUTES ================= */}
+        {/* CartProvider wraps only shop routes — the cart context is not
+            needed by the admin side of the app */}
+        <Route
+          path="/"
+          element={
+            <CartProvider>
+              <Shop />
+            </CartProvider>
+          }
+        />
+        <Route
+          path="/product/:slug"
+          element={
+            <CartProvider>
+              <PublicProductDetails />
+            </CartProvider>
+          }
+        />
+
+        {/* ================= AUTH ROUTES ================= */}
         <Route path="/login" element={<Login />} />
         <Route path="/reset" element={<ResetPassword />} />
         <Route path="/set-password" element={<SetPassword />} />
-        <Route path="/" element={<Shop/>}/>
-        <Route path="/product/:slug" element={<PublicProductDetails/>}/>
 
-        {/* ================= PROTECTED ROUTES ================= */}
-        {/* Dashboard */}
+        {/* ================= PROTECTED / ADMIN ROUTES ================= */}
         <Route
           path="/dashboard"
           element={
@@ -95,8 +112,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* Products related */}
         <Route
           path="/all-products"
           element={
@@ -129,8 +144,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* Categories & Subcategories */}
         <Route
           path="/categories"
           element={
@@ -147,7 +160,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/logos"
           element={
@@ -156,7 +168,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/logo/:id"
           element={

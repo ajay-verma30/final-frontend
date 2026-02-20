@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShoppingCart, ChevronDown, LogOut, User, Plus } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useCart } from "../../context/CartContext";
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
+  const { totalItems } = useCart();
 
   const goToProfile = () => { navigate("/profile"); setDropdownOpen(false); };
   const goToCoupons = () => { navigate("/coupons"); setDropdownOpen(false); };
@@ -37,9 +39,11 @@ const Navbar: React.FC = () => {
             className="relative text-slate-700 hover:text-slate-900 transition-colors"
           >
             <ShoppingCart className="w-5 h-5" />
+            {totalItems > 0 && (
             <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-              
+              {totalItems > 99 ? "99+" : totalItems}
             </span>
+          )}
           </button>
 
         {isAuthenticated && user ? (

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/axiosInstance";
 import ShopNavbar from "./components/ShopNavbar";
 import { ShoppingBag, Shield, Truck, RotateCcw, ChevronRight, Star, Minus, Plus, Heart, Share2, ZoomIn } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 
 interface PriceTier {
   id: number;
@@ -30,6 +32,7 @@ interface Variant {
 
 interface Customization {
   id: number;
+  logo_variant_id: number;
   product_variant_image_id: number;
   logo_url: string;
   logo_title: string;
@@ -94,7 +97,9 @@ export default function PublicProductDetails() {
   const [imageZoomed, setImageZoomed] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "sizing" | "shipping">("details");
-
+  const { isAuthenticated } = useAuth();
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
   useEffect(() => {
     if (!slug) return;
     api.get(`api/public/details/${slug}`).then((res) => {
@@ -150,11 +155,114 @@ export default function PublicProductDetails() {
   const variantPrice = parseFloat(selectedVariant?.variant_price || "0") || 0;
   const inStock = (selectedVariant?.stock ?? 0) > 0;
 
-  const handleAddToCart = () => {
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
-  };
+  // Composites the product image + ALL selected logo overlays onto one canvas.
+  // Accepts an array so all logos are drawn in a single pass.
+  const buildCompositeBlob = (
+    productImgUrl: string,
+    customizations: Customization[]
+  ): Promise<Blob> =>
+    new Promise((resolve, reject) => {
+      const W = 900, H = 1200;
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Canvas context unavailable"));
 
+      const base = new Image();
+      base.crossOrigin = "anonymous";
+      base.onerror = () => reject(new Error("Failed to load product image"));
+      base.onload = () => {
+        const scale = Math.max(W / base.width, H / base.height);
+        const dw = base.width * scale, dh = base.height * scale;
+        ctx.drawImage(base, (W - dw) / 2, (H - dh) / 2, dw, dh);
+
+        const drawLogos = (index: number) => {
+          if (index >= customizations.length) {
+            canvas.toBlob(
+              (blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))),
+              "image/png"
+            );
+            return;
+          }
+          const c = customizations[index];
+          const logo = new Image();
+          logo.crossOrigin = "anonymous";
+          logo.onerror = () => reject(new Error("Failed to load logo: " + c.logo_url));
+          logo.onload = () => {
+            const lw = (parseFloat(String(c.logo_width)) / 100) * W;
+            const lh = c.logo_height
+              ? (parseFloat(String(c.logo_height)) / 100) * H
+              : lw * (logo.naturalHeight / logo.naturalWidth);
+            const lx = (parseFloat(String(c.pos_x)) / 100) * W - lw / 2;
+            const ly = (parseFloat(String(c.pos_y)) / 100) * H - lh / 2;
+            ctx.drawImage(logo, lx, ly, lw, lh);
+            drawLogos(index + 1);
+          };
+          logo.src = c.logo_url;
+        };
+
+        drawLogos(0);
+      };
+      base.src = productImgUrl;
+    });
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    if (!selectedVariant || !selectedImage) return;
+
+    try {
+      const activeCustomizations = filteredCustomizations.filter((c) =>
+        selectedCustomizations.has(c.id)
+      );
+
+      if (activeCustomizations.length > 0) {
+        // CUSTOMIZED PATH: composite all logos → save design → add to cart
+        const blob = await buildCompositeBlob(selectedImage.url, activeCustomizations);
+        const logoVariantIds = activeCustomizations.map((c) => c.logo_variant_id);
+
+        const customFormData = new FormData();
+        customFormData.append("custom_image", blob, "design.png");
+        customFormData.append("product_id", String(product.id));
+        customFormData.append("product_variant_id", String(selectedVariant.id));
+        customFormData.append("product_variant_image_id", String(selectedImage.id));
+        customFormData.append("logo_variant_ids", JSON.stringify(logoVariantIds));
+
+        const saveRes = await api.post("/api/user/custom/save", customFormData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        if (!saveRes.data.success) {
+          throw new Error("Failed to save custom design");
+        }
+
+        // addToCart from CartContext — calls API + refreshes context state
+        await addToCart({
+          product_variant_id: selectedVariant.id,
+          quantity,
+          custom_product_id: saveRes.data.id,
+          custom_url: saveRes.data.custom_url,
+          logo_variant_ids: logoVariantIds,
+          product_variant_image_id: selectedImage.id,
+        });
+
+      } else {
+        // PLAIN PRODUCT PATH: straight to cart, no custom tables touched
+        await addToCart({
+          product_variant_id: selectedVariant.id,
+          quantity,
+        });
+      }
+
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2000);
+    } catch (error) {
+      console.error("Cart error:", error);
+    }
+  };
   // Get active price tier (applies to variant_price portion only)
   const activeTier = selectedVariant?.price_tiers
     .slice()
