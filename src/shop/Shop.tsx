@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import api from "../api/axiosInstance";
 import ProductCard from "../shop/components/ProductCard";
 import { Filter, ChevronRight } from "lucide-react";
-import ShopNavbar from "../shop/components/ShopNavbar";
+import ShopNavbar from "./components/ShopNavbar";
 
 // Types matching your API response
 interface Product {

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef} from "react";
 import { useNavigate } from "react-router-dom";
 import { ShieldCheck, ArrowLeft, Package, Truck } from "lucide-react";
-import ShopNavbar from "./components/Shopnavbar";
+import ShopNavbar from "./components/ShopNavbar";
 import StripeWrapper from "../components/StripeWrapper";
 import { useCart } from "../context/CartContext";
 import api from "../api/axiosInstance";
