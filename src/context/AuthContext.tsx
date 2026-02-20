@@ -13,7 +13,7 @@ interface AuthContextType {
   token: string | null;
   user: UserPayload | null;
   isAuthenticated: boolean;
-  loginWithCredentials: (email: string, password: string) => Promise<void>;
+  loginWithCredentials: (email: string, password: string) => Promise<UserPayload>; // ← returns UserPayload
   logout: () => void;
   refreshToken: () => Promise<boolean>;
   error: string | null;
@@ -29,8 +29,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Use a ref so interceptors always have access to the latest token
-  // without needing to re-register on every token change.
   const tokenRef = useRef<string | null>(token);
 
   const updateAuthState = useCallback((newToken: string | null) => {
@@ -61,7 +59,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [updateAuthState]);
 
-  // Expose a stable refreshToken function for manual use
   const refreshToken = useCallback(async (): Promise<boolean> => {
     try {
       const res = await api.post("/auth/refresh");
@@ -73,14 +70,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [updateAuthState, logout]);
 
-  // Run ONCE on mount: verify the stored token and set up interceptors.
-  // Interceptors are registered only once, using tokenRef to avoid stale closures.
   useEffect(() => {
-    // Verify stored token on initial load
     updateAuthState(token);
     setLoading(false);
 
-    // Track in-flight refresh to prevent duplicate 401 refresh calls
     let isRefreshing = false;
     let pendingRequests: Array<(newToken: string) => void> = [];
 
@@ -103,7 +96,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           prevRequest._retry = true;
 
           if (isRefreshing) {
-            // Queue requests that come in while a refresh is already in progress
             return new Promise((resolve) => {
               pendingRequests.push((newToken: string) => {
                 prevRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -118,11 +110,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const res = await api.post("/auth/refresh");
             const newAccessToken = res.data.accessToken;
             updateAuthState(newAccessToken);
-
-            // Retry all queued requests with the new token
             pendingRequests.forEach((cb) => cb(newAccessToken));
             pendingRequests = [];
-
             prevRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return api(prevRequest);
           } catch (refreshErr) {
@@ -143,14 +132,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       api.interceptors.response.eject(responseIntercept);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps: interceptors register once, tokenRef keeps them current
+  }, []);
 
-  const loginWithCredentials = async (email: string, password: string) => {
+  // Returns the user object directly so callers don't depend on React state timing
+  const loginWithCredentials = async (email: string, password: string): Promise<UserPayload> => {
     setLoading(true);
     setError(null);
     try {
       const res = await api.post("/auth/login", { email, password });
       updateAuthState(res.data.accessToken);
+      return res.data.user; // ← returned directly, not read from state
     } catch (err: any) {
       setError(err.response?.data?.message || "Login error");
       throw err;

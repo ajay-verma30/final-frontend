@@ -9,38 +9,40 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // AuthContext
+  // No 'user' from state — role comes directly from loginWithCredentials return value
   const { loginWithCredentials, loading, error } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccess(false);
 
-    // Validation
     if (!email.trim() || !password.trim()) {
       alert("Please fill in all fields");
       return;
     }
 
-   try {
-      await loginWithCredentials(email, password);
+    try {
+      const userData = await loginWithCredentials(email, password); 
       setSuccess(true);
 
       setTimeout(() => {
-        navigate("/dashboard"); 
+        if (userData?.role === 'ENDUSER') {
+          navigate("/");
+        } else {
+          navigate("/dashboard");
+        }
       }, 1500);
     } catch (err) {
       console.error("Login component error:", err);
     }
   };
 
-  const handelReset = ()=>{
-    navigate('/reset')
-  }
+  const handelReset = () => {
+    navigate('/reset');
+  };
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 overflow-hidden">
-      {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div
@@ -49,7 +51,6 @@ const Login = () => {
         ></div>
       </div>
 
-      {/* Login card */}
       <div className="relative w-full max-w-md">
         <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl p-8 md:p-10">
           <div className="mb-8 text-center">
@@ -61,7 +62,6 @@ const Login = () => {
             </p>
           </div>
 
-          {/* Success state */}
           {success && (
             <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
               <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
@@ -71,7 +71,6 @@ const Login = () => {
             </div>
           )}
 
-          {/* Error state */}
           {error && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
               <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
@@ -79,7 +78,6 @@ const Login = () => {
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="group">
               <input

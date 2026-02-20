@@ -46,6 +46,28 @@ const NewProduct: React.FC = () => {
     has_variants: 1
   });
 
+  // Default product images (uploaded on Step 1, max 3)
+  const [defaultImages, setDefaultImages] = useState<SelectedImage[]>([]);
+
+  const handleDefaultImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const remaining = 3 - defaultImages.length;
+    if (remaining <= 0) return alert("Maximum 3 images allowed");
+    const filesArray = Array.from(e.target.files).slice(0, remaining).map((file, i) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      view_type: (i === 0 ? 'FRONT' : i === 1 ? 'BACK' : 'SIDE') as 'FRONT' | 'BACK' | 'SIDE',
+    }));
+    setDefaultImages(prev => [...prev, ...filesArray]);
+    e.target.value = '';
+  };
+
+  const removeDefaultImage = (index: number) => {
+    setDefaultImages(prev => {
+      URL.revokeObjectURL(prev[index].preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
   // Fetch categories
   useEffect(() => {
     const fetchCats = async () => {
@@ -69,28 +91,32 @@ const NewProduct: React.FC = () => {
     fetchSubs();
   }, [productData.category_id]);
 
-  // Handle product submission
+  // Handle product submission — multipart/form-data so backend handles images via upload.array()
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload = {
-        name: productData.name,
-        description: productData.description || null,
-        short_description: productData.short_description || null,
-        gender: productData.gender || null,
-        base_price: parseFloat(productData.base_price || "0"),
-        category_id: parseInt(productData.category_id),
-        subcategory_id: parseInt(productData.subcategory_id),
-        is_public: productData.is_public,
-        has_variants: productData.has_variants,
-        is_active: 1,
-        is_featured: 0,
-        meta_title: null,
-        meta_description: null
-      };
+      const formData = new FormData();
+      formData.append("name", productData.name);
+      formData.append("description", productData.description || "");
+      formData.append("short_description", productData.short_description || "");
+      formData.append("gender", productData.gender || "UNISEX");
+      formData.append("base_price", String(parseFloat(productData.base_price || "0")));
+      formData.append("category_id", productData.category_id);
+      formData.append("subcategory_id", productData.subcategory_id);
+      formData.append("is_public", String(productData.is_public));
+      formData.append("has_variants", String(productData.has_variants));
+      formData.append("is_active", "1");
+      formData.append("is_featured", "0");
 
-      const res = await api.post("/api/products/create", payload);
+      // Attach default images — backend reads via req.files (upload.array("images", 3))
+      defaultImages.forEach((img) => {
+        formData.append("images", img.file);
+      });
+
+      const res = await api.post("/api/products/create", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       setProductId(res.data.productId);
       setStep(2);
     } catch (err: any) {
@@ -155,6 +181,45 @@ const NewProduct: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Short Description</label>
                   <textarea className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg h-24 outline-none resize-none" value={productData.short_description} onChange={(e) => setProductData({...productData, short_description: e.target.value})} />
                 </div>
+                {/* ── Default Product Images ─────────────────────────────────── */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                      Default Images <span className="text-slate-300 normal-case font-medium">(max 3 — first becomes primary)</span>
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-medium">{defaultImages.length}/3</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    {defaultImages.map((img, idx) => (
+                      <div key={idx} className="relative bg-slate-50 rounded-xl border border-slate-200 overflow-hidden group">
+                        <img src={img.preview} alt={`preview-${idx}`} className="w-full h-28 object-cover" />
+                        {idx === 0 && (
+                          <span className="absolute top-1.5 left-1.5 bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
+                            Primary
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeDefaultImage(idx)}
+                          className="absolute top-1.5 right-1.5 bg-red-500 text-white rounded-full p-1 shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={12} />
+                        </button>
+                        <div className="px-2 py-1.5 text-[10px] font-bold text-slate-500 uppercase text-center bg-white border-t border-slate-100">
+                          {img.view_type}
+                        </div>
+                      </div>
+                    ))}
+                    {defaultImages.length < 3 && (
+                      <label className="flex flex-col items-center justify-center h-36 border-2 border-dashed border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer text-slate-400 transition-colors">
+                        <ImageIcon size={22} />
+                        <span className="text-[10px] font-bold mt-1.5 uppercase">Add Image</span>
+                        <input type="file" multiple hidden accept="image/*" onChange={handleDefaultImageChange} />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
 
                 <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2">
                   {loading ? "Processing..." : "Save & Continue to Variants"} <ArrowRight size={18} />

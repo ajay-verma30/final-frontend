@@ -23,6 +23,8 @@ import Logos from "./pages/Logos";
 import LogoDetails from "./pages/LogoDetails";
 import CustomizeProduct from "./pages/CustomizeProduct";
 import Coupons from "./pages/Coupons";
+import Shop from "./shop/Shop";
+import PublicProductDetails from "./shop/PublicProductDetails";
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/reset" element={<ResetPassword />} />
         <Route path="/set-password" element={<SetPassword />} />
+        <Route path="/" element={<Shop/>}/>
+        <Route path="/product/:slug" element={<PublicProductDetails/>}/>
 
         {/* ================= PROTECTED ROUTES ================= */}
         {/* Dashboard */}
