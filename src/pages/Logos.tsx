@@ -61,7 +61,7 @@ const Logos: React.FC = () => {
     formData.append("color", color);
 
     try {
-      await api.post("/api/logos/add", formData, {
+      await api.post("/api/logos", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setShowModal(false);
@@ -78,7 +78,7 @@ const Logos: React.FC = () => {
     if (!window.confirm(`Are you sure you want to delete "${logoTitle}"?`)) return;
     setDeletingId(id);
     try {
-      await api.delete(`/api/logo/${id}`);
+      await api.delete(`/api/logos/logo/${id}`);
       setLogos((prev) => prev.filter((l) => l.id !== id));
     } catch (err) {
       alert("Delete failed");
