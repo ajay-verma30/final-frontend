@@ -278,7 +278,7 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
     : variantPrice;
 
   // Total = base_price + (variant_price * quantity)
-  const totalPrice = basePrice + effectiveVariantPrice * quantity;
+  const totalPrice = (basePrice + effectiveVariantPrice) * quantity;
 
   return (
     <div className="min-h-screen" style={{ fontFamily: "'Cormorant Garamond', 'Georgia', serif", background: "#f8f6f2" }}>
