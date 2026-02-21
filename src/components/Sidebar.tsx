@@ -86,7 +86,7 @@ const Sidebar: React.FC = () => {
               icon={<Users size={20} />}
               items={[
                 { label: "Users", onClick: () => navigate("/users") },
-                { label: "Groups", onClick: () => navigate("/user-groups") },
+                { label: "Groups", onClick: () => navigate("/groups") },
               ]}
             />
 
