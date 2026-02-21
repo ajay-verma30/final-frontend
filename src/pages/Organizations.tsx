@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axiosInstance";
+import { useAuth } from "../context/AuthContext";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import {
   Pencil, Trash2, Plus, Search, Filter, Loader2,
-  Building2, Globe, Phone, X, User, Lock, CheckCircle2,
+  Building2, Globe, Phone, X, User, Lock, CheckCircle2, AlertCircle,
 } from "lucide-react";
 
 interface Organization {
@@ -18,10 +19,8 @@ interface Organization {
 }
 
 interface FormState {
-  // Organization
   name: string;
   phone: string;
-  // Admin user
   first_name: string;
   last_name: string;
   email: string;
@@ -29,16 +28,18 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
-  name: "", phone: "",
-  first_name: "", last_name: "", email: "", password: "",
+  name: "", phone: "", first_name: "", last_name: "", email: "", password: "",
 };
 
 const Organizations: React.FC = () => {
+  const { user } = useAuth();
+  const isSUPER = user?.role === "SUPER";
+
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Modal state
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [creating, setCreating] = useState(false);
@@ -61,22 +62,21 @@ const Organizations: React.FC = () => {
 
   useEffect(() => { fetchOrganizations(); }, []);
 
-  // ── Field change helper ───────────────────────────────────────────────────
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setCreateError(null);
   };
 
-  // ── Create org ────────────────────────────────────────────────────────────
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateError(null);
 
-    // Basic client-side validation
-    if (!form.name.trim()) return setCreateError("Organization name is required.");
+    if (!form.name.trim())
+      return setCreateError("Organization name is required.");
     if (!form.first_name.trim() || !form.last_name.trim())
       return setCreateError("Admin first and last name are required.");
-    if (!form.email.trim()) return setCreateError("Admin email is required.");
+    if (!form.email.trim())
+      return setCreateError("Admin email is required.");
     if (!form.password || form.password.length < 8)
       return setCreateError("Admin password must be at least 8 characters.");
 
@@ -95,14 +95,13 @@ const Organizations: React.FC = () => {
 
       setCreateSuccess(true);
       fetchOrganizations();
-
-      // Auto-close after 1.5s
       setTimeout(() => {
         setShowModal(false);
         setCreateSuccess(false);
         setForm(EMPTY_FORM);
       }, 1500);
     } catch (err: any) {
+      // Show exact backend error message inline — no alert()
       setCreateError(err.response?.data?.message || "Failed to create organization.");
     } finally {
       setCreating(false);
@@ -117,15 +116,16 @@ const Organizations: React.FC = () => {
     setCreateSuccess(false);
   };
 
-  // ── Delete ────────────────────────────────────────────────────────────────
   const handleDelete = async (id: number, name: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${name}"? This action might be irreversible.`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
     setDeletingId(id);
+    setDeleteError(null);
     try {
       await api.delete(`/api/organizations/${id}`);
       setOrganizations((prev) => prev.filter((org) => org.id !== id));
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to delete organization");
+      // Show inline error — no alert()
+      setDeleteError(err.response?.data?.message || "Failed to delete organization.");
     } finally {
       setDeletingId(null);
     }
@@ -146,15 +146,30 @@ const Organizations: React.FC = () => {
               </h1>
               <p className="text-slate-500 text-sm">Manage partner companies and their account status.</p>
             </div>
-            <button
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all font-bold shadow-lg shadow-indigo-200"
-              onClick={() => setShowModal(true)}
-            >
-              <Plus size={18} /> Register Organization
-            </button>
+
+            {/* Register button — SUPER only */}
+            {isSUPER && (
+              <button
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all font-bold shadow-lg shadow-indigo-200"
+                onClick={() => setShowModal(true)}
+              >
+                <Plus size={18} /> Register Organization
+              </button>
+            )}
           </div>
 
-          {/* Table card */}
+          {/* Inline delete error banner */}
+          {deleteError && (
+            <div className="flex items-center gap-3 mb-4 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
+              <AlertCircle size={16} className="flex-shrink-0" />
+              <span className="flex-1">{deleteError}</span>
+              <button onClick={() => setDeleteError(null)} className="text-red-400 hover:text-red-600">
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* Table */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex gap-4 bg-white">
               <div className="relative flex-grow max-w-md">
@@ -170,22 +185,24 @@ const Organizations: React.FC = () => {
               </button>
             </div>
 
-            <div className="overflow-x-auto relative">
+            <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50/50 border-b border-slate-200 text-slate-400 uppercase text-[10px] font-black tracking-widest">
                   <tr>
                     <th className="px-6 py-4">Organization Details</th>
                     <th className="px-6 py-4">Phone</th>
                     <th className="px-6 py-4">Created Date</th>
-                    <th className="px-6 py-4 text-center sticky right-0 bg-slate-50 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.04)] border-l border-slate-200">
-                      Actions
-                    </th>
+                    {isSUPER && (
+                      <th className="px-6 py-4 text-center sticky right-0 bg-slate-50 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.04)] border-l border-slate-200">
+                        Actions
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {loading ? (
                     <tr>
-                      <td colSpan={4} className="text-center py-20">
+                      <td colSpan={isSUPER ? 4 : 3} className="text-center py-20">
                         <div className="flex flex-col items-center gap-2">
                           <Loader2 className="animate-spin text-indigo-500" size={32} />
                           <span className="text-slate-400 text-sm font-medium">Fetching organizations...</span>
@@ -194,7 +211,7 @@ const Organizations: React.FC = () => {
                     </tr>
                   ) : organizations.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="text-center py-20 text-slate-400 italic">
+                      <td colSpan={isSUPER ? 4 : 3} className="text-center py-20 text-slate-400 italic">
                         No organizations registered yet.
                       </td>
                     </tr>
@@ -228,31 +245,34 @@ const Organizations: React.FC = () => {
                           })}
                         </td>
 
-                        <td className="px-6 py-4 sticky right-0 bg-white group-hover:bg-slate-50 transition-colors border-l border-slate-100 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.02)]">
-                          <div className="flex items-center justify-center gap-3">
-                            <button
-                              onClick={() => navigate(`/organization/${org.id}`)}
-                              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-100/50 rounded-lg transition-all border border-transparent hover:border-indigo-200"
-                              title="Edit Organization"
-                            >
-                              <Pencil size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(org.id, org.name)}
-                              disabled={deletingId === org.id}
-                              className={`p-2 rounded-lg transition-all border border-transparent ${
-                                deletingId === org.id
-                                  ? "text-slate-200 bg-slate-100 cursor-not-allowed"
-                                  : "text-slate-400 hover:text-red-600 hover:bg-red-50 hover:border-red-100"
-                              }`}
-                              title="Delete Organization"
-                            >
-                              {deletingId === org.id
-                                ? <Loader2 size={18} className="animate-spin" />
-                                : <Trash2 size={18} />}
-                            </button>
-                          </div>
-                        </td>
+                        {/* Actions — SUPER only */}
+                        {isSUPER && (
+                          <td className="px-6 py-4 sticky right-0 bg-white group-hover:bg-slate-50 transition-colors border-l border-slate-100 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.02)]">
+                            <div className="flex items-center justify-center gap-3">
+                              <button
+                                onClick={() => navigate(`/organization/${org.id}`)}
+                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-100/50 rounded-lg transition-all border border-transparent hover:border-indigo-200"
+                                title="Edit Organization"
+                              >
+                                <Pencil size={18} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(org.id, org.name)}
+                                disabled={deletingId === org.id}
+                                className={`p-2 rounded-lg transition-all border border-transparent ${
+                                  deletingId === org.id
+                                    ? "text-slate-200 bg-slate-100 cursor-not-allowed"
+                                    : "text-slate-400 hover:text-red-600 hover:bg-red-50 hover:border-red-100"
+                                }`}
+                                title="Delete Organization"
+                              >
+                                {deletingId === org.id
+                                  ? <Loader2 size={18} className="animate-spin" />
+                                  : <Trash2 size={18} />}
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
@@ -263,8 +283,8 @@ const Organizations: React.FC = () => {
         </main>
       </div>
 
-      {/* ── CREATE ORGANIZATION MODAL ──────────────────────────────────────── */}
-      {showModal && (
+      {/* ── CREATE ORGANIZATION MODAL (SUPER only) ──────────────────────── */}
+      {showModal && isSUPER && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
             className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col"
@@ -296,14 +316,17 @@ const Organizations: React.FC = () => {
                 <p className="text-slate-500 text-sm">An invite email has been sent to the admin.</p>
               </div>
             ) : (
-              <form onSubmit={handleCreate} className="overflow-y-auto flex-1">
-                <div className="px-7 py-6 space-y-6">
+              <form onSubmit={handleCreate} className="overflow-y-auto flex-1 flex flex-col">
+                <div className="px-7 py-6 space-y-6 flex-1">
 
-                  {/* Error banner */}
+                  {/* Inline error banner */}
                   {createError && (
-                    <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
-                      <X size={15} className="flex-shrink-0" />
-                      {createError}
+                    <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
+                      <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+                      <span className="flex-1">{createError}</span>
+                      <button type="button" onClick={() => setCreateError(null)} className="text-red-400 hover:text-red-600 flex-shrink-0">
+                        <X size={14} />
+                      </button>
                     </div>
                   )}
 
@@ -321,23 +344,18 @@ const Organizations: React.FC = () => {
                           Organization Name <span className="text-red-500">*</span>
                         </label>
                         <input
-                          type="text"
-                          name="name"
-                          value={form.name}
-                          onChange={handleChange}
+                          type="text" name="name" value={form.name} onChange={handleChange}
                           placeholder="e.g. Acme Corp"
                           className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50 focus:bg-white transition-all"
                         />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1">
-                          Phone <span className="text-slate-400 font-normal">(Optional — format: +1-XXX-XXX-XXXX)</span>
+                          Phone{" "}
+                          <span className="text-slate-400 font-normal">(Optional — format: +1-XXX-XXX-XXXX)</span>
                         </label>
                         <input
-                          type="text"
-                          name="phone"
-                          value={form.phone}
-                          onChange={handleChange}
+                          type="text" name="phone" value={form.phone} onChange={handleChange}
                           placeholder="+1-555-123-4567"
                           className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50 focus:bg-white transition-all"
                         />
@@ -345,7 +363,6 @@ const Organizations: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Divider */}
                   <div className="border-t border-slate-100" />
 
                   {/* Admin section */}
@@ -363,10 +380,7 @@ const Organizations: React.FC = () => {
                             First Name <span className="text-red-500">*</span>
                           </label>
                           <input
-                            type="text"
-                            name="first_name"
-                            value={form.first_name}
-                            onChange={handleChange}
+                            type="text" name="first_name" value={form.first_name} onChange={handleChange}
                             placeholder="John"
                             className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50 focus:bg-white transition-all"
                           />
@@ -376,10 +390,7 @@ const Organizations: React.FC = () => {
                             Last Name <span className="text-red-500">*</span>
                           </label>
                           <input
-                            type="text"
-                            name="last_name"
-                            value={form.last_name}
-                            onChange={handleChange}
+                            type="text" name="last_name" value={form.last_name} onChange={handleChange}
                             placeholder="Doe"
                             className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50 focus:bg-white transition-all"
                           />
@@ -390,24 +401,19 @@ const Organizations: React.FC = () => {
                           Email Address <span className="text-red-500">*</span>
                         </label>
                         <input
-                          type="email"
-                          name="email"
-                          value={form.email}
-                          onChange={handleChange}
+                          type="email" name="email" value={form.email} onChange={handleChange}
                           placeholder="admin@acmecorp.com"
                           className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50 focus:bg-white transition-all"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
-                          <Lock size={11} /> Password <span className="text-red-500">*</span>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">
+                          <Lock size={11} className="inline mr-1" />
+                          Password <span className="text-red-500">*</span>
                           <span className="text-slate-400 font-normal ml-1">(min 8 chars)</span>
                         </label>
                         <input
-                          type="password"
-                          name="password"
-                          value={form.password}
-                          onChange={handleChange}
+                          type="password" name="password" value={form.password} onChange={handleChange}
                           placeholder="••••••••"
                           className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 bg-slate-50 focus:bg-white transition-all"
                         />
@@ -415,32 +421,26 @@ const Organizations: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Info note */}
                   <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-xs text-indigo-600">
-                    The admin will receive an email with a link to activate their account and set up their password.
+                    The admin will receive an email with a link to activate their account and set their password.
                   </div>
                 </div>
 
                 {/* Footer */}
                 <div className="px-7 py-4 bg-slate-50 border-t border-slate-200 flex gap-3 flex-shrink-0">
                   <button
-                    type="button"
-                    onClick={closeModal}
-                    disabled={creating}
+                    type="button" onClick={closeModal} disabled={creating}
                     className="flex-1 py-2.5 border border-slate-300 text-slate-600 font-semibold rounded-xl hover:bg-slate-100 transition-all disabled:opacity-50 text-sm"
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    disabled={creating}
+                    type="submit" disabled={creating}
                     className="flex-[2] flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition-all disabled:opacity-50 text-sm shadow-sm"
                   >
-                    {creating ? (
-                      <><Loader2 className="animate-spin" size={16} /> Creating...</>
-                    ) : (
-                      <><Plus size={16} /> Create Organization</>
-                    )}
+                    {creating
+                      ? <><Loader2 className="animate-spin" size={16} /> Creating...</>
+                      : <><Plus size={16} /> Create Organization</>}
                   </button>
                 </div>
               </form>
