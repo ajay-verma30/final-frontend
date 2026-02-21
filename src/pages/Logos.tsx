@@ -61,7 +61,7 @@ const Logos: React.FC = () => {
     formData.append("color", color);
 
     try {
-      await api.post("/api/logo", formData, {
+      await api.post("/api/logos/add", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setShowModal(false);
