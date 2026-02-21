@@ -24,6 +24,7 @@ const Products: React.FC = () => {
   const [deletingId, setDeletingId] = useState<number | null>(null); 
   const [showNotice, setShowNotice] = useState(false);
   const navigate = useNavigate();
+  
 
   const fetchProducts = async () => {
     setLoading(true);

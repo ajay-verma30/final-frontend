@@ -26,6 +26,7 @@ const Categories: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [parentSegment, setParentSegment] = useState("MENS");
 
   const [showModal, setShowModal] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -56,21 +57,22 @@ const Categories: React.FC = () => {
     fetchCategories();
   }, []);
 
-  const handleCreateCategory = async () => {
-    if (!name.trim()) {
-      alert("Category name is required");
-      return;
-    }
+const handleCreateCategory = async () => {
+  if (!name.trim()) {
+    alert("Category name is required");
+    return;
+  }
 
-    setCreating(true);
-    try {
-      const res = await api.post("/api/categories", {
-        name,
-        supports_gender: supportsGender,
-        is_active: isActive
-      });
+  setCreating(true);
+  try {
+    const res = await api.post("/api/categories", {
+      name,
+      parent_segment: parentSegment, 
+      supports_gender: supportsGender,
+      is_active: isActive
+    });
 
-      const categoryId = res.data.categoryId;
+    const categoryId = res.data.categoryId;
 
       if (imageFile) {
         const formData = new FormData();
@@ -119,15 +121,15 @@ const Categories: React.FC = () => {
     }
   };
 
-  const resetForm = () => {
-    setName("");
-    setSupportsGender(0);
-    setIsActive(1);
-    setImageFile(null);
-    setImagePreview(null);
-    setShowModal(false);
-  };
-
+ const resetForm = () => {
+  setName("");
+  setSupportsGender(0);
+  setIsActive(1);
+  setParentSegment("MENS"); 
+  setImageFile(null);
+  setImagePreview(null);
+  setShowModal(false);
+};
   return (
     <div className="flex h-screen w-screen bg-gradient-to-br from-slate-50 via-slate-50 to-slate-100">
       <Sidebar />
@@ -302,6 +304,22 @@ const Categories: React.FC = () => {
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all bg-slate-50 focus:bg-white"
                 />
               </div>
+              {/* Parent Segment Dropdown */}
+<div>
+  <label className="block text-sm font-semibold text-slate-700 mb-2">
+    Parent Segment (Enum) <span className="text-red-500">*</span>
+  </label>
+  <select
+    value={parentSegment}
+    onChange={(e) => setParentSegment(e.target.value)}
+    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all bg-slate-50 focus:bg-white font-medium"
+  >
+    <option value="MENS">MENS</option>
+    <option value="WOMENS">WOMENS</option>
+    <option value="KIDS">KIDS</option>
+    <option value="ACCESSORIES">ACCESSORIES</option>
+  </select>
+</div>
 
               {/* Gender Support */}
               <div>
