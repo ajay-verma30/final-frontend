@@ -7,6 +7,7 @@ import {
   Building2, Palette, Layout, 
   ArrowLeft, Save, Loader2, Upload, X
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const OrganizationDetails: React.FC = () => {
   const { id } = useParams();
@@ -15,6 +16,7 @@ const OrganizationDetails: React.FC = () => {
   const [updating, setUpdating] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
+  const {user} = useAuth();
   
   // Single State for all fields
   const [formData, setFormData] = useState({
@@ -129,9 +131,12 @@ const OrganizationDetails: React.FC = () => {
           <div className="max-w-5xl mx-auto">
             
             <div className="flex justify-between items-center mb-6">
-              <button onClick={() => navigate('/organizations')} className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition-colors">
-                <ArrowLeft size={20} /> Back
-              </button>
+              <button 
+  onClick={() => navigate(user?.role === 'ADMIN' ? '/dashboard' : '/organizations')} 
+  className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition-colors"
+>
+  <ArrowLeft size={20} /> Back
+</button>
               <button 
                 onClick={handleUpdate}
                 disabled={updating}
