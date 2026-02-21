@@ -5,6 +5,7 @@ interface UserPayload {
   id: number;
   email: string;
   role: string;
+  org_id: number;
   exp: number;
 }
 
