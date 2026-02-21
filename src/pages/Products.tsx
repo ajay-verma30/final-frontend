@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axiosInstance"; 
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import { Pencil, Trash2, Plus, Search, Filter, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Plus, Search, Filter, Loader2, Info, X } from "lucide-react";
 
 // Product Data Type
 interface Product {
@@ -22,6 +22,7 @@ const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null); 
+  const [showNotice, setShowNotice] = useState(false);
   const navigate = useNavigate();
 
   const fetchProducts = async () => {
@@ -36,7 +37,15 @@ const Products: React.FC = () => {
     }
   };
 
-  // --- NEW DELETE HANDLER ---
+  const handleAddProduct = () => {
+    setShowNotice(true);
+  };
+
+  const handleConfirmAddProduct = () => {
+    setShowNotice(false);
+    navigate("/new-product");
+  };
+
   const handleDelete = async (id: number, name: string) => {
     if (!window.confirm(`Are you sure you want to delete "${name}" and all its variants?`)) {
       return;
@@ -65,6 +74,46 @@ const Products: React.FC = () => {
       <div className="flex-grow flex flex-col overflow-hidden">
         <Navbar />
         <main className="flex-grow overflow-y-auto p-8">
+
+          {/* Notice Modal */}
+          {showNotice && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 mx-4 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+                    <Info className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-slate-800 font-semibold text-base mb-1">Before you continue</h3>
+                    <p className="text-slate-500 text-sm leading-relaxed">
+                      Please make sure there is a <span className="font-semibold text-slate-700">Category</span> and <span className="font-semibold text-slate-700">Sub Category</span> created before adding a new product.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowNotice(false)}
+                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex gap-3 mt-6 justify-end">
+                  <button
+                    onClick={() => setShowNotice(false)}
+                    className="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmAddProduct}
+                    className="px-4 py-2 text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-colors"
+                  >
+                    Continue Anyway
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
@@ -73,7 +122,7 @@ const Products: React.FC = () => {
             </div>
             <button 
               className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg transition-colors font-medium shadow-sm"
-              onClick={() => navigate(`/new-product`)}
+              onClick={handleAddProduct}
             >
               <Plus size={18} /> Add Product
             </button>
@@ -169,7 +218,6 @@ const Products: React.FC = () => {
                               <Pencil size={18} />
                             </button>
                             
-                            {/* --- UPDATED TRASH BUTTON --- */}
                             <button 
                               onClick={() => handleDelete(product.id, product.title)}
                               disabled={deletingId === product.id}
