@@ -141,24 +141,33 @@ const CustomizeProduct: React.FC = () => {
   // =========================
   // ADD LOGO TO CANVAS
   // =========================
-  const addVariantToCanvas = (variant: LogoVariant) => {
-    if (!selectedMainImage) return;
+const addVariantToCanvas = (variant: LogoVariant) => {
+  if (!selectedMainImage) return;
 
-    const newId = crypto.randomUUID();
-    const newPlacement: Placement = {
-      id: newId,
-      product_variant_image_id: selectedMainImage.id,
-      logo_variant_id: variant.id,
-      image_url: variant.image_url,
-      x: 35,
-      y: 35,
-      w: 20,
-      h: 20,
-    };
+  // Guard: don't allow same logo variant on same image twice
+  const alreadyExists = placements.some(
+    (p) => p.logo_variant_id === variant.id && p.product_variant_image_id === selectedMainImage.id
+  );
+  if (alreadyExists) {
+    alert(`This logo variant is already placed on this image.`);
+    return;
+  }
 
-    setPlacements((prev) => [...prev, newPlacement]);
-    setSelectedPlacementId(newId);
+  const newId = crypto.randomUUID();
+  const newPlacement: Placement = {
+    id: newId,
+    product_variant_image_id: selectedMainImage.id,
+    logo_variant_id: variant.id,
+    image_url: variant.image_url,
+    x: 35,
+    y: 35,
+    w: 20,
+    h: 20,
   };
+
+  setPlacements((prev) => [...prev, newPlacement]);
+  setSelectedPlacementId(newId);
+};
 
   // =========================
   // MOUSE DRAG
@@ -286,39 +295,45 @@ const CustomizeProduct: React.FC = () => {
   // SAVE
   // =========================
   const handleSave = async () => {
-    if (!designName.trim()) {
-      setNameError(true);
-      return;
-    }
-    if (!placements.length) {
-      alert("Add at least one logo to the canvas.");
-      return;
-    }
+  if (!designName.trim()) {
+    setNameError(true);
+    return;
+  }
+  if (!placements.length) {
+    alert("Add at least one logo to the canvas.");
+    return;
+  }
 
-    try {
-      setSaving(true);
-      console.log(id);
-      for (const p of placements) {
-        await api.post("/api/customizations/add", {
-          name: designName.trim(),
-          product_id: id,
-          product_variant_image_id: p.product_variant_image_id,
-          logo_variant_id: p.logo_variant_id,
-          pos_x: p.x,
-          pos_y: p.y,
-          logo_width: p.w,
-          logo_height: p.h,
-        });
-      }
+  // Deduplicate: keep only the last placement per (logo_variant_id + product_variant_image_id)
+  const seen = new Map<string, Placement>();
+  for (const p of placements) {
+    const key = `${p.logo_variant_id}_${p.product_variant_image_id}`;
+    seen.set(key, p); // later placement overwrites earlier one
+  }
+  const uniquePlacements = Array.from(seen.values());
 
-      alert("Customization saved successfully!");
-    } catch (err) {
-      console.error("Save Error:", err);
-      alert("Save failed. Please try again.");
-    } finally {
-      setSaving(false);
+  try {
+    setSaving(true);
+    for (const p of uniquePlacements) {
+      await api.post("/api/customizations/add", {
+        name: designName.trim(),
+        product_id: id,
+        product_variant_image_id: p.product_variant_image_id,
+        logo_variant_id: p.logo_variant_id,
+        pos_x: p.x,
+        pos_y: p.y,
+        logo_width: p.w,
+        logo_height: p.h,
+      });
     }
-  };
+    alert("Customization saved successfully!");
+  } catch (err) {
+    console.error("Save Error:", err);
+    alert("Save failed. Please try again.");
+  } finally {
+    setSaving(false);
+  }
+};
 
   // =========================
   // CANVAS CLICK DESELECT
