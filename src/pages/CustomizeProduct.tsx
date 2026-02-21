@@ -417,7 +417,7 @@ const CustomizeProduct: React.FC = () => {
               ref={containerRef}
               onClick={onCanvasClick}
               className="relative bg-white shadow-2xl"
-              style={{ width: 500, height: 600, cursor: "default" }}
+              style={{ width: 500, height: 667, cursor: "default" }}
             >
               {selectedMainImage && (
                 <img

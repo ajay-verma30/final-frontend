@@ -195,8 +195,8 @@ export default function PublicProductDetails() {
             const lh = c.logo_height
               ? (parseFloat(String(c.logo_height)) / 100) * H
               : lw * (logo.naturalHeight / logo.naturalWidth);
-            const lx = (parseFloat(String(c.pos_x)) / 100) * W - lw / 2;
-            const ly = (parseFloat(String(c.pos_y)) / 100) * H - lh / 2;
+const lx = (parseFloat(String(c.pos_x)) / 100) * W;
+const ly = (parseFloat(String(c.pos_y)) / 100) * H;
             ctx.drawImage(logo, lx, ly, lw, lh);
             drawLogos(index + 1);
           };
@@ -414,8 +414,7 @@ export default function PublicProductDetails() {
                           top: `${c.pos_y}%`,
                           left: `${c.pos_x}%`,
                           width: `${c.logo_width}%`,
-                          height: c.logo_height ? `${c.logo_height}%` : "auto",
-                          transform: "translate(-50%, -50%)",
+                          height: c.logo_height ? `${c.logo_height}%` : "auto"
                         }}
                       >
                         <img src={c.logo_url} alt={c.logo_title} className="w-full h-full object-contain" />
