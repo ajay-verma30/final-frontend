@@ -80,12 +80,11 @@ const Sidebar: React.FC = () => {
             <SidebarItem icon={<Building2 size={20} />} label="My Organization" onClick={() => navigate("/my-org")} />
 
             <SidebarDropdown 
-              title="Users and Coupons" 
+              title="Users and Groups" 
               icon={<Users size={20} />}
               items={[
                 { label: "Users", onClick: () => navigate("/users") },
                 { label: "Groups", onClick: () => navigate("/user-groups") },
-                { label: "Coupons", onClick: () => navigate("/coupons") }
               ]}
             />
 
