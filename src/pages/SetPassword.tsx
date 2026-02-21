@@ -75,9 +75,9 @@ const SetPassword: React.FC = () => {
     setLoading(true);
     try {
       const response = await axios.post<{ message: string }>(
-        'http://localhost:5000/auth/set-password',
-        { token, newPassword: password }
-      );
+  `${import.meta.env.VITE_API_URL}/auth/set-password`,
+  { token, newPassword: password }
+);
 
       setMessage({ type: 'success', text: response.data.message });
       setTimeout(() => navigate('/login'), 3000);
