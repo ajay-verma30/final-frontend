@@ -96,7 +96,7 @@ const Sidebar: React.FC = () => {
               title="Products" 
               icon={<Package size={20} />}
               items={[
-                { label: "Products", onClick: () => navigate("/products") }
+                { label: "Products", onClick: () => navigate("/all-products") }
               ]}
             />
 
