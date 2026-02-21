@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 const Sidebar: React.FC = () => {
   const { user } = useAuth();
+  console.log(user);
   const navigate = useNavigate();
   const role = user?.role?.toUpperCase();
 
@@ -77,7 +78,7 @@ const Sidebar: React.FC = () => {
         {/* --- ADMIN ONLY --- */}
         {role === "ADMIN" && (
           <>
-            <SidebarItem icon={<Building2 size={20} />} label="My Organization" onClick={() => navigate("/my-org")} />
+            <SidebarItem icon={<Building2 size={20} />} label="My Organization" onClick={() => navigate("/organization/:id")} />
 
             <SidebarDropdown 
               title="Users and Groups" 
