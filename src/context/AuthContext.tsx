@@ -7,6 +7,7 @@ interface UserPayload {
   id: number;
   email: string;
   role: string;
+  org_id: number
 }
 
 interface AuthContextType {
