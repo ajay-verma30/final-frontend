@@ -14,6 +14,9 @@ interface CategoryAsset {
 interface Category {
   id: number;
   name: string;
+  slug?: string;
+  parent_segment?: string;
+  gender?: string;
   org_id: number | null;
   supports_gender?: number;
   is_active?: number;
@@ -21,34 +24,73 @@ interface Category {
   assets?: CategoryAsset[];
 }
 
+const PARENT_SEGMENTS = ["APPAREL", "ACCESSORIES", "FOOTWEAR", "STATIONERY", "HEADWEAR", "BAGS"] as const;
+const GENDER_OPTIONS   = ["MENS", "WOMENS", "KIDS", "UNISEX"] as const;
+
+// Segments where gender makes sense (apparel, footwear, headwear)
+const GENDER_SUPPORTED_SEGMENTS = new Set(["APPAREL", "FOOTWEAR", "HEADWEAR"]);
+
+// Pill colours per segment
+const SEGMENT_COLORS: Record<string, string> = {
+  APPAREL:     "bg-indigo-50 text-indigo-700",
+  ACCESSORIES: "bg-purple-50 text-purple-700",
+  FOOTWEAR:    "bg-orange-50 text-orange-700",
+  STATIONERY:  "bg-yellow-50 text-yellow-700",
+  HEADWEAR:    "bg-teal-50 text-teal-700",
+  BAGS:        "bg-pink-50 text-pink-700",
+};
+
+const GENDER_COLORS: Record<string, string> = {
+  MENS:   "bg-blue-50 text-blue-700",
+  WOMENS: "bg-rose-50 text-rose-700",
+  KIDS:   "bg-amber-50 text-amber-700",
+  UNISEX: "bg-slate-100 text-slate-600",
+};
+
 const Categories: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [parentSegment, setParentSegment] = useState("MENS");
+  const [categories, setCategories]     = useState<Category[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [deletingId, setDeletingId]     = useState<number | null>(null);
+  const [error, setError]               = useState<string | null>(null);
 
-  const [showModal, setShowModal] = useState(false);
-  const [creating, setCreating] = useState(false);
-
-  // FORM STATE
-  const [name, setName] = useState("");
+  // ── FORM STATE ────────────────────────────────────────────────────────────
+  const [showModal, setShowModal]         = useState(false);
+  const [creating, setCreating]           = useState(false);
+  const [name, setName]                   = useState("");
+  const [parentSegment, setParentSegment] = useState<string>("APPAREL");
+  const [gender, setGender]               = useState<string>("UNISEX");
   const [supportsGender, setSupportsGender] = useState(0);
-  const [isActive, setIsActive] = useState(1);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isActive, setIsActive]           = useState(1);
+  const [imageFile, setImageFile]         = useState<File | null>(null);
+  const [imagePreview, setImagePreview]   = useState<string | null>(null);
 
-  // SIZE CHART UPLOAD MODAL STATE
-  const [sizeChartModal, setSizeChartModal] = useState<{ open: boolean; categoryId: number | null; categoryName: string }>({
-    open: false,
-    categoryId: null,
-    categoryName: "",
-  });
-  const [sizeChartFile, setSizeChartFile] = useState<File | null>(null);
+  // ── SIZE CHART MODAL STATE ────────────────────────────────────────────────
+  const [sizeChartModal, setSizeChartModal] = useState<{
+    open: boolean; categoryId: number | null; categoryName: string;
+  }>({ open: false, categoryId: null, categoryName: "" });
+  const [sizeChartFile, setSizeChartFile]       = useState<File | null>(null);
   const [sizeChartPreview, setSizeChartPreview] = useState<string | null>(null);
   const [sizeChartTargetGroup, setSizeChartTargetGroup] = useState<"MEN" | "WOMEN" | "UNISEX">("UNISEX");
-  const [uploadingChart, setUploadingChart] = useState(false);
+  const [uploadingChart, setUploadingChart]     = useState(false);
 
+  // ── When segment changes, auto-toggle supports_gender & reset gender ──────
+  const handleSegmentChange = (seg: string) => {
+    setParentSegment(seg);
+    if (GENDER_SUPPORTED_SEGMENTS.has(seg)) {
+      setSupportsGender(1);
+    } else {
+      setSupportsGender(0);
+      setGender("UNISEX");
+    }
+  };
+
+  // ── When supports_gender toggled off, reset gender ────────────────────────
+  const handleSupportsGenderChange = (val: number) => {
+    setSupportsGender(val);
+    if (val === 0) setGender("UNISEX");
+  };
+
+  // ── API calls ─────────────────────────────────────────────────────────────
   const fetchCategories = async () => {
     setLoading(true);
     setError(null);
@@ -63,31 +105,28 @@ const Categories: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  useEffect(() => { fetchCategories(); }, []);
 
   const handleCreateCategory = async () => {
-    if (!name.trim()) {
-      alert("Category name is required");
-      return;
-    }
+    if (!name.trim()) { alert("Category name is required"); return; }
 
     setCreating(true);
     try {
       const res = await api.post("/api/categories", {
         name,
         parent_segment: parentSegment,
+        gender,
         supports_gender: supportsGender,
         is_active: isActive,
       });
 
       const categoryId = res.data.categoryId;
 
+      // Optionally upload an initial size chart
       if (imageFile) {
         const formData = new FormData();
         formData.append("category_id", categoryId);
-        formData.append("target_group", "UNISEX");
+        formData.append("target_group", gender === "UNISEX" ? "UNISEX" : gender === "MENS" ? "MEN" : gender === "WOMENS" ? "WOMEN" : "UNISEX");
         formData.append("image", imageFile);
 
         await api.post("/api/categories/size-chart", formData, {
@@ -106,8 +145,8 @@ const Categories: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number, name: string) => {
-    if (!window.confirm(`Delete "${name}"? This action cannot be undone.`)) return;
+  const handleDelete = async (id: number, catName: string) => {
+    if (!window.confirm(`Delete "${catName}"? This action cannot be undone.`)) return;
     setDeletingId(id);
     try {
       await api.delete(`/api/categories/${id}`);
@@ -124,22 +163,23 @@ const Categories: React.FC = () => {
     if (file) {
       setImageFile(file);
       const reader = new FileReader();
-      reader.onload = (event) => setImagePreview(event.target?.result as string);
+      reader.onload = (ev) => setImagePreview(ev.target?.result as string);
       reader.readAsDataURL(file);
     }
   };
 
   const resetForm = () => {
     setName("");
+    setParentSegment("APPAREL");
+    setGender("UNISEX");
     setSupportsGender(0);
     setIsActive(1);
-    setParentSegment("MENS");
     setImageFile(null);
     setImagePreview(null);
     setShowModal(false);
   };
 
-  // ── Size Chart Modal Handlers ─────────────────────────────────────────────
+  // ── Size Chart Modal ──────────────────────────────────────────────────────
   const openSizeChartModal = (categoryId: number, categoryName: string) => {
     setSizeChartModal({ open: true, categoryId, categoryName });
     setSizeChartFile(null);
@@ -158,14 +198,13 @@ const Categories: React.FC = () => {
     if (file) {
       setSizeChartFile(file);
       const reader = new FileReader();
-      reader.onload = (event) => setSizeChartPreview(event.target?.result as string);
+      reader.onload = (ev) => setSizeChartPreview(ev.target?.result as string);
       reader.readAsDataURL(file);
     }
   };
 
   const handleSizeChartUpload = async () => {
     if (!sizeChartFile || !sizeChartModal.categoryId) return;
-
     setUploadingChart(true);
     try {
       const formData = new FormData();
@@ -186,6 +225,9 @@ const Categories: React.FC = () => {
       setUploadingChart(false);
     }
   };
+
+  // ── Derived: does the currently selected segment support gender? ──────────
+  const segmentSupportsGender = GENDER_SUPPORTED_SEGMENTS.has(parentSegment);
 
   return (
     <div className="flex h-screen w-screen bg-gradient-to-br from-slate-50 via-slate-50 to-slate-100">
@@ -221,13 +263,17 @@ const Categories: React.FC = () => {
                 <Loader2 className="animate-spin text-emerald-500 mb-4" size={40} />
                 <p className="text-slate-500">Fetching categories...</p>
               </div>
+            ) : error ? (
+              <div className="text-center py-20 text-red-500 font-medium">{error}</div>
             ) : (
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
-                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Category Details</th>
+                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Category</th>
+                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Segment</th>
+                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Gender</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Size Chart</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Organization</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Status</th>
@@ -235,7 +281,13 @@ const Categories: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {categories.map((cat) => (
+                      {categories.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-6 py-16 text-center text-slate-400 font-medium">
+                            No categories yet. Create your first one.
+                          </td>
+                        </tr>
+                      ) : categories.map((cat) => (
                         <tr key={cat.id} className="hover:bg-slate-50/50 transition-colors group">
 
                           {/* Name */}
@@ -251,7 +303,29 @@ const Categories: React.FC = () => {
                             </div>
                           </td>
 
-                          {/* Size Chart Preview */}
+                          {/* Segment pill */}
+                          <td className="px-6 py-4">
+                            {cat.parent_segment ? (
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${SEGMENT_COLORS[cat.parent_segment] ?? "bg-slate-100 text-slate-600"}`}>
+                                {cat.parent_segment}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">—</span>
+                            )}
+                          </td>
+
+                          {/* Gender pill */}
+                          <td className="px-6 py-4">
+                            {Number(cat.supports_gender) === 1 && cat.gender ? (
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${GENDER_COLORS[cat.gender] ?? "bg-slate-100 text-slate-600"}`}>
+                                {cat.gender}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">N/A</span>
+                            )}
+                          </td>
+
+                          {/* Size Chart */}
                           <td className="px-6 py-4">
                             {cat.assets && cat.assets.length > 0 ? (
                               <div className="relative w-12 h-12 group/img cursor-pointer">
@@ -298,7 +372,6 @@ const Categories: React.FC = () => {
                           {/* Actions */}
                           <td className="px-6 py-4 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              {/* Upload Size Chart */}
                               <button
                                 onClick={() => openSizeChartModal(cat.id, cat.name)}
                                 className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
@@ -306,14 +379,15 @@ const Categories: React.FC = () => {
                               >
                                 <Upload size={18} />
                               </button>
-                              {/* Delete */}
                               <button
                                 onClick={() => handleDelete(cat.id, cat.name)}
                                 disabled={deletingId === cat.id}
                                 className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                 title="Delete Category"
                               >
-                                {deletingId === cat.id ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                                {deletingId === cat.id
+                                  ? <Loader2 className="animate-spin" size={18} />
+                                  : <Trash2 size={18} />}
                               </button>
                             </div>
                           </td>
@@ -329,13 +403,14 @@ const Categories: React.FC = () => {
         </main>
       </div>
 
-      {/* ── CREATE CATEGORY MODAL ─────────────────────────────────────────────── */}
+      {/* ── CREATE CATEGORY MODAL ──────────────────────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
-            className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden transform transition-all"
+            className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden"
             style={{ animation: "slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}
           >
+            {/* Modal header */}
             <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 md:px-8 py-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white/20 rounded-lg">
@@ -351,48 +426,83 @@ const Categories: React.FC = () => {
               </button>
             </div>
 
-            <div className="px-6 md:px-8 py-6 space-y-5">
+            <div className="px-6 md:px-8 py-6 space-y-5 max-h-[70vh] overflow-y-auto">
+
+              {/* Category Name */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Category Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g., Men's Clothing, Electronics"
+                  placeholder="e.g., T-Shirts, Running Shoes"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all bg-slate-50 focus:bg-white"
                 />
               </div>
 
+              {/* Parent Segment */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Parent Segment <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={parentSegment}
-                  onChange={(e) => setParentSegment(e.target.value)}
+                  onChange={(e) => handleSegmentChange(e.target.value)}
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all bg-slate-50 focus:bg-white font-medium"
                 >
-                  <option value="MENS">MENS</option>
-                  <option value="WOMENS">WOMENS</option>
-                  <option value="KIDS">KIDS</option>
-                  <option value="ACCESSORIES">ACCESSORIES</option>
+                  {PARENT_SEGMENTS.map((seg) => (
+                    <option key={seg} value={seg}>{seg}</option>
+                  ))}
                 </select>
               </div>
 
+              {/* Gender Support toggle — always visible but disabled for non-gender segments */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Gender Support</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Gender Support
+                  {!segmentSupportsGender && (
+                    <span className="ml-2 text-xs text-slate-400 font-normal">(not applicable for {parentSegment})</span>
+                  )}
+                </label>
                 <select
                   value={supportsGender}
-                  onChange={(e) => setSupportsGender(Number(e.target.value))}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all bg-slate-50 focus:bg-white"
+                  onChange={(e) => handleSupportsGenderChange(Number(e.target.value))}
+                  disabled={!segmentSupportsGender}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all bg-slate-50 focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <option value={0}>No Gender Support</option>
-                  <option value={1}>Supports Gender Variants</option>
+                  <option value={0}>No Gender Split (Unisex)</option>
+                  <option value={1}>Has Gender Variants</option>
                 </select>
               </div>
 
+              {/* Gender selector — only shown when supports_gender = 1 */}
+              {supportsGender === 1 && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Gender <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {GENDER_OPTIONS.map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setGender(g)}
+                        className={`py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
+                          gender === g
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                            : "border-slate-200 bg-white text-slate-500 hover:border-emerald-300"
+                        }`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Status */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
                 <select
@@ -405,6 +515,7 @@ const Categories: React.FC = () => {
                 </select>
               </div>
 
+              {/* Optional size chart */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-3">
                   Size Chart Image <span className="text-slate-400 font-normal">(Optional)</span>
@@ -443,21 +554,22 @@ const Categories: React.FC = () => {
                 disabled={creating}
                 className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50"
               >
-                {creating ? <><Loader2 className="animate-spin" size={18} /> Creating...</> : <><Plus size={18} /> Create Category</>}
+                {creating
+                  ? <><Loader2 className="animate-spin" size={18} /> Creating...</>
+                  : <><Plus size={18} /> Create Category</>}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── UPLOAD SIZE CHART MODAL (for existing categories) ────────────────── */}
+      {/* ── UPLOAD SIZE CHART MODAL ────────────────────────────────────────── */}
       {sizeChartModal.open && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div
             className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 overflow-hidden"
             style={{ animation: "slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}
           >
-            {/* Header */}
             <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white/20 rounded-lg">
@@ -473,10 +585,7 @@ const Categories: React.FC = () => {
               </button>
             </div>
 
-            {/* Body */}
             <div className="px-6 py-6 space-y-5">
-
-              {/* Target Group */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Target Group</label>
                 <select
@@ -490,7 +599,6 @@ const Categories: React.FC = () => {
                 </select>
               </div>
 
-              {/* File Upload */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Size Chart Image <span className="text-red-500">*</span>
@@ -516,7 +624,6 @@ const Categories: React.FC = () => {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="bg-slate-50 px-6 py-4 flex items-center gap-3 border-t border-slate-200">
               <button
                 onClick={closeSizeChartModal}
@@ -530,7 +637,9 @@ const Categories: React.FC = () => {
                 disabled={!sizeChartFile || uploadingChart}
                 className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:from-slate-300 disabled:to-slate-400 text-white font-semibold py-2.5 rounded-lg transition-all"
               >
-                {uploadingChart ? <><Loader2 className="animate-spin" size={18} /> Uploading...</> : <><Upload size={18} /> Upload Chart</>}
+                {uploadingChart
+                  ? <><Loader2 className="animate-spin" size={18} /> Uploading...</>
+                  : <><Upload size={18} /> Upload Chart</>}
               </button>
             </div>
           </div>
@@ -542,7 +651,6 @@ const Categories: React.FC = () => {
           from { opacity: 0; transform: translateY(30px) scale(0.95); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
-        input:focus, select:focus, textarea:focus { transition: all 0.2s ease; }
         tbody tr:hover { box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.1); }
       `}</style>
     </div>

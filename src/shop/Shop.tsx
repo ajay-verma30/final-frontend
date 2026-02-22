@@ -202,7 +202,6 @@ const HeroSection = ({ onShopNow, onGetQuote }: { onShopNow: () => void; onGetQu
             />
           </div>
 
-          {/* Bag — smaller, left, slightly behind */}
           <div style={{
             position: "absolute",
             left: "20px",
