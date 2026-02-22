@@ -137,33 +137,6 @@ const HeroSection = ({ onShopNow, onGetQuote }: { onShopNow: () => void; onGetQu
             Custom-branded apparel, bags, and accessories — fulfilled at scale for your organization.
           </p>
 
-          {/* Stats row */}
-          <div style={{
-            display: "flex", gap: "32px", marginBottom: "40px",
-          }}>
-            {[
-              { value: "500+", label: "Products" },
-              { value: "48hr", label: "Turnaround" },
-              { value: "100%", label: "Custom" },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <div style={{
-                  fontSize: "1.5rem", fontWeight: 900, color: "#fff",
-                  fontFamily: "'DM Sans', sans-serif",
-                }}>
-                  {stat.value}
-                </div>
-                <div style={{
-                  fontSize: "0.7rem", fontWeight: 600,
-                  color: "rgba(148,163,184,0.7)",
-                  textTransform: "uppercase", letterSpacing: "0.1em",
-                }}>
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-
           {/* CTA */}
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
             <button
@@ -227,26 +200,6 @@ const HeroSection = ({ onShopNow, onGetQuote }: { onShopNow: () => void; onGetQu
                 transform: "rotate(-4deg)",
               }}
             />
-            {/* Logo placement badge */}
-            <div style={{
-              position: "absolute",
-              top: "70px", left: "50%",
-              transform: "translateX(-50%)",
-              background: "rgba(99,102,241,0.85)",
-              backdropFilter: "blur(8px)",
-              borderRadius: "8px",
-              padding: "4px 10px",
-              fontSize: "9px",
-              fontWeight: 700,
-              color: "#fff",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              whiteSpace: "nowrap",
-              border: "1px solid rgba(165,180,252,0.4)",
-              pointerEvents: "none",
-            }}>
-              ✦ Logo Placement
-            </div>
           </div>
 
           {/* Bag — smaller, left, slightly behind */}
@@ -344,6 +297,16 @@ const Shop = () => {
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Listen for search events dispatched by ShopNavbar
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const query = (e as CustomEvent<string>).detail;
+      setSearchQuery(query);
+    };
+    window.addEventListener("navbar-search", handler);
+    return () => window.removeEventListener("navbar-search", handler);
   }, []);
 
   useEffect(() => {
@@ -454,11 +417,7 @@ const Shop = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <ShopNavbar
-        cartCount={0}
-        onSearch={(q) => { setSearchQuery(q); }}
-        onLoginClick={() => (window.location.href = "/login")}
-      />
+      <ShopNavbar />
 
       {/* ── Segment nav bar ── */}
       <div className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">

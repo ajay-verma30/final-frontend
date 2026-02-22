@@ -94,11 +94,7 @@ const Contact = () => {
         fontFamily: "'DM Sans', system-ui, sans-serif",
       }}
     >
-      <ShopNavbar
-        cartCount={0}
-        onSearch={() => {}}
-        onLoginClick={() => (window.location.href = "/login")}
-      />
+      <ShopNavbar />
 
       {/* Ambient orbs */}
       <div style={{
