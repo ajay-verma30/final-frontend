@@ -348,13 +348,15 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
 
       {/* Breadcrumb */}
       <div className="jost max-w-7xl mx-auto px-6 pt-8 pb-2 flex items-center gap-2 text-xs text-[#9a8a78]" style={{ letterSpacing: '0.08em' }}>
-        <span className="hover:text-[#5a4a3a] cursor-pointer transition-colors">Home</span>
-        <ChevronRight size={12} />
-        <span className="hover:text-[#5a4a3a] cursor-pointer transition-colors capitalize">{product.category.slug.replace(/-/g, ' ')}</span>
-        <ChevronRight size={12} />
-        <span className="hover:text-[#5a4a3a] cursor-pointer transition-colors capitalize">{product.subcategory.slug.replace(/-/g, ' ')}</span>
-        <ChevronRight size={12} />
-        <span className="text-[#5a4a3a] font-medium">{product.name}</span>
+        <span className="hover:text-[#5a4a3a] cursor-pointer transition-colors" onClick={() => navigate('/')}>
+  Home
+</span>
+<span className="hover:text-[#5a4a3a] cursor-pointer transition-colors" onClick={() => navigate(`/shop?category=${product.category.slug}`)}>
+  {product.category.slug.replace(/-/g, ' ')}
+</span>
+<span className="hover:text-[#5a4a3a] cursor-pointer transition-colors" onClick={() => navigate(`/shop?category=${product.category.slug}&subcategory=${product.subcategory.slug}`)}>
+  {product.subcategory.slug.replace(/-/g, ' ')}
+</span>
       </div>
 
       <main className="max-w-7xl mx-auto px-6 py-8 lg:py-12">

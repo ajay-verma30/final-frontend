@@ -28,6 +28,7 @@ import Checkout from "./shop/Checkout";
 import OrderHistory from "./shop/Orderhistory";
 import { CartProvider } from "./context/CartContext";
 import Cart from "./shop/Cart";
+import SubShop from "./shop/SubShop";
 
 function App() {
   return (
@@ -43,6 +44,14 @@ function App() {
               <Shop />
             </CartProvider>
           }
+        />
+        <Route 
+          path="/shop" 
+          element={
+            <CartProvider>
+              <SubShop />
+            </CartProvider>
+          } 
         />
         <Route
           path="/product/:slug"
