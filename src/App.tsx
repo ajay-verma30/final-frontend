@@ -29,6 +29,7 @@ import OrderHistory from "./shop/Orderhistory";
 import { CartProvider } from "./context/CartContext";
 import Cart from "./shop/Cart";
 import SubShop from "./shop/SubShop";
+import Contact from "./shop/Contact";
 
 function App() {
   return (
@@ -81,7 +82,7 @@ function App() {
           path="/contact"
           element={
             <CartProvider>
-              <Checkout />
+              <Contact />
             </CartProvider>
           }
         />

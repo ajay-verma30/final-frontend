@@ -167,33 +167,6 @@ const HeroSection = ({ onShopNow, onGetQuote }: { onShopNow: () => void; onGetQu
           {/* CTA */}
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
             <button
-              onClick={onShopNow}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "8px",
-                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-                color: "#fff",
-                border: "none",
-                borderRadius: "12px",
-                padding: "14px 28px",
-                fontSize: "0.9rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                boxShadow: "0 8px 32px rgba(99,102,241,0.4)",
-                transition: "transform 0.2s, box-shadow 0.2s",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)";
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 12px 40px rgba(99,102,241,0.55)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
-                (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 32px rgba(99,102,241,0.4)";
-              }}
-            >
-              Shop Now <ArrowRight size={16} />
-            </button>
-            <button
               style={{
                 display: "inline-flex", alignItems: "center", gap: "8px",
                 background: "rgba(255,255,255,0.06)",
