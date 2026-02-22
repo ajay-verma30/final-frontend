@@ -101,6 +101,7 @@ export default function PublicProductDetails() {
   const { isAuthenticated } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
+
   useEffect(() => {
     if (!slug) return;
     api.get(`api/public/details/${slug}`).then((res) => {
@@ -128,16 +129,12 @@ export default function PublicProductDetails() {
     (c) => c.product_variant_image_id === selectedImage?.id
   );
 
-  // Unique colors derived from variants
   const uniqueColors = Array.from(new Map(product.variants.map((v) => [v.color, v])).values());
-
-  // Sizes available for the selected color
   const sizesForColor = product.variants.filter((v) => v.color === selectedColor);
 
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
     setSelectedCustomizations(new Set());
-    // Pick first variant of this color (any size) to show its images
     const firstOfColor = product.variants.find((v) => v.color === color);
     if (firstOfColor) {
       setSelectedVariant(firstOfColor);
@@ -156,8 +153,6 @@ export default function PublicProductDetails() {
   const variantPrice = parseFloat(selectedVariant?.variant_price || "0") || 0;
   const inStock = (selectedVariant?.stock ?? 0) > 0;
 
-  // Composites the product image + ALL selected logo overlays onto one canvas.
-  // Accepts an array so all logos are drawn in a single pass.
   const buildCompositeBlob = (
     productImgUrl: string,
     customizations: Customization[]
@@ -195,8 +190,8 @@ export default function PublicProductDetails() {
             const lh = c.logo_height
               ? (parseFloat(String(c.logo_height)) / 100) * H
               : lw * (logo.naturalHeight / logo.naturalWidth);
-const lx = (parseFloat(String(c.pos_x)) / 100) * W;
-const ly = (parseFloat(String(c.pos_y)) / 100) * H;
+            const lx = (parseFloat(String(c.pos_x)) / 100) * W;
+            const ly = (parseFloat(String(c.pos_y)) / 100) * H;
             ctx.drawImage(logo, lx, ly, lw, lh);
             drawLogos(index + 1);
           };
@@ -222,7 +217,6 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
       );
 
       if (activeCustomizations.length > 0) {
-        // CUSTOMIZED PATH: composite all logos → save design → add to cart
         const blob = await buildCompositeBlob(selectedImage.url, activeCustomizations);
         const logoVariantIds = activeCustomizations.map((c) => c.logo_variant_id);
 
@@ -241,7 +235,6 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
           throw new Error("Failed to save custom design");
         }
 
-        // addToCart from CartContext — calls API + refreshes context state
         await addToCart({
           product_variant_id: selectedVariant.id,
           quantity,
@@ -252,7 +245,6 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
         });
 
       } else {
-        // PLAIN PRODUCT PATH: straight to cart, no custom tables touched
         await addToCart({
           product_variant_id: selectedVariant.id,
           quantity,
@@ -267,7 +259,7 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
       setIsCartLoading(false);
     }
   };
-  // Get active price tier (applies to variant_price portion only)
+
   const activeTier = selectedVariant?.price_tiers
     .slice()
     .sort((a, b) => b.min_qty - a.min_qty)
@@ -277,86 +269,62 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
     ? parseFloat(activeTier.unit_price || activeTier.price || "0")
     : variantPrice;
 
-  // Total = base_price + (variant_price * quantity)
   const totalPrice = (basePrice + effectiveVariantPrice) * quantity;
 
   return (
     <div className="min-h-screen" style={{ fontFamily: "'Cormorant Garamond', 'Georgia', serif", background: "#f8f6f2" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap');
-
         * { box-sizing: border-box; }
-
         .jost { font-family: 'Jost', sans-serif; }
-
         .thumb-btn { transition: all 0.25s cubic-bezier(0.4,0,0.2,1); }
         .thumb-btn:hover { transform: translateY(-2px); }
-
         .color-swatch { transition: all 0.25s ease; }
         .color-swatch:hover { transform: scale(1.1); }
-
-        .add-btn {
-          position: relative;
-          overflow: hidden;
-          transition: all 0.3s ease;
-        }
-        .add-btn::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: rgba(255,255,255,0.15);
-          transform: translateX(-100%);
-          transition: transform 0.4s ease;
-        }
+        .add-btn { position: relative; overflow: hidden; transition: all 0.3s ease; }
+        .add-btn::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.15); transform: translateX(-100%); transition: transform 0.4s ease; }
         .add-btn:hover::after { transform: translateX(0); }
         .add-btn:active { transform: scale(0.98); }
-
         .tab-btn { transition: all 0.2s ease; }
-
         .fade-in { animation: fadeIn 0.5s ease forwards; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
-
         .main-image-wrap { cursor: zoom-in; }
         .main-image-wrap.zoomed { cursor: zoom-out; }
-
-        .qty-btn {
-          width: 36px; height: 36px;
-          display: flex; align-items: center; justify-content: center;
-          border-radius: 50%;
-          border: 1.5px solid #d4c4a8;
-          background: white;
-          color: #5a4a3a;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
+        .qty-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1.5px solid #d4c4a8; background: white; color: #5a4a3a; cursor: pointer; transition: all 0.2s; }
         .qty-btn:hover { background: #5a4a3a; color: white; border-color: #5a4a3a; }
         .qty-btn:disabled { opacity: 0.3; cursor: default; }
         .qty-btn:disabled:hover { background: white; color: #5a4a3a; border-color: #d4c4a8; }
-
         .trust-badge { transition: transform 0.2s; }
         .trust-badge:hover { transform: translateY(-2px); }
-
-        .select-custom {
-          appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235a4a3a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: right 14px center;
-        }
+        .select-custom { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235a4a3a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
       `}</style>
 
       <ShopNavbar />
 
-      {/* Breadcrumb */}
+      {/* ── Breadcrumb ── */}
       <div className="jost max-w-7xl mx-auto px-6 pt-8 pb-2 flex items-center gap-2 text-xs text-[#9a8a78]" style={{ letterSpacing: '0.08em' }}>
-        <span className="hover:text-[#5a4a3a] cursor-pointer transition-colors" onClick={() => navigate('/')}>
-  Home
-</span>
-<span className="hover:text-[#5a4a3a] cursor-pointer transition-colors" onClick={() => navigate(`/shop?category=${product.category.slug}`)}>
-  {product.category.slug.replace(/-/g, ' ')}
-</span>
-<span className="hover:text-[#5a4a3a] cursor-pointer transition-colors" onClick={() => navigate(`/shop?category=${product.category.slug}&subcategory=${product.subcategory.slug}`)}>
-  {product.subcategory.slug.replace(/-/g, ' ')}
-</span>
+        <span
+          className="hover:text-[#5a4a3a] cursor-pointer transition-colors"
+          onClick={() => navigate('/shop')}
+        >
+          Shop
+        </span>
+        <ChevronRight size={12} />
+        <span
+          className="hover:text-[#5a4a3a] cursor-pointer transition-colors capitalize"
+          onClick={() => navigate(`/shop?category=${product.category.slug}`)}
+        >
+          {product.category.slug.replace(/-/g, ' ')}
+        </span>
+        <ChevronRight size={12} />
+        <span
+          className="hover:text-[#5a4a3a] cursor-pointer transition-colors capitalize"
+          onClick={() => navigate(`/shop?category=${product.category.slug}&subcategory=${product.subcategory.slug}`)}
+        >
+          {product.subcategory.slug.replace(/-/g, ' ')}
+        </span>
+        <ChevronRight size={12} />
+        <span className="text-[#5a4a3a] font-medium">{product.name}</span>
       </div>
 
       <main className="max-w-7xl mx-auto px-6 py-8 lg:py-12">
@@ -364,10 +332,7 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
 
           {/* ─── LEFT: IMAGE GALLERY ─── */}
           <div className="space-y-4 fade-in max-w-[460px] w-full">
-
-            {/* Thumbnails (vertical strip on desktop) */}
             <div className="flex lg:flex-row gap-4">
-              {/* Vertical strip */}
               {selectedVariant && selectedVariant.images.length > 1 && (
                 <div className="hidden lg:flex flex-col gap-3 pt-1">
                   {selectedVariant.images.map((img) => (
@@ -386,7 +351,6 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
                 </div>
               )}
 
-              {/* Main image */}
               <div className="flex-1">
                 <div
                   className={`main-image-wrap relative rounded-2xl overflow-hidden bg-white shadow-lg border border-[#ede8df] aspect-[3/4] ${imageZoomed ? 'zoomed' : ''}`}
@@ -405,7 +369,6 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
                     </div>
                   )}
 
-                  {/* Logo overlays — all selected logos rendered */}
                   {filteredCustomizations
                     .filter((c) => selectedCustomizations.has(c.id))
                     .map((c) => (
@@ -423,20 +386,17 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
                       </div>
                     ))}
 
-                  {/* View type badge */}
                   {selectedImage?.view_type && (
                     <div className="absolute bottom-4 left-4 jost text-[10px] font-500 uppercase tracking-widest px-3 py-1.5 rounded-full bg-white/80 backdrop-blur-sm text-[#5a4a3a] border border-white/60">
                       {selectedImage.view_type}
                     </div>
                   )}
 
-                  {/* Zoom icon */}
                   <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center border border-white/60">
                     <ZoomIn size={14} className="text-[#5a4a3a]" />
                   </div>
                 </div>
 
-                {/* Horizontal thumbnails on mobile */}
                 {selectedVariant && selectedVariant.images.length > 1 && (
                   <div className="flex lg:hidden gap-3 mt-4 justify-center">
                     {selectedVariant.images.map((img) => (
@@ -458,7 +418,7 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
               </div>
             </div>
 
-            {/* Info Tabs — below image */}
+            {/* Info Tabs */}
             <div className="bg-white rounded-2xl border border-[#e8dfd4] overflow-hidden">
               <div className="jost flex border-b border-[#e8dfd4]">
                 {(["details", "sizing", "shipping"] as const).map((tab) => (
@@ -502,7 +462,6 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
           {/* ─── RIGHT: PRODUCT INFO ─── */}
           <div className="space-y-8 fade-in" style={{ animationDelay: '0.1s' }}>
 
-            {/* Header */}
             <div>
               <div className="jost flex items-center gap-3 mb-3">
                 <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#c8a96e] bg-[#fdf6ea] px-3 py-1 rounded-full border border-[#f0e0c0]">
@@ -533,35 +492,23 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
               </div>
             </div>
 
-            {/* Price */}
             <div className="flex items-end gap-4">
               <div style={{ fontFamily: 'Cormorant Garamond, Georgia, serif' }}>
                 <div className="flex items-baseline gap-3">
-                  <span style={{ fontSize: '1.1rem', fontWeight: 400, color: '#9a8a78' }}>
-                    Base ${basePrice.toFixed(2)}
-                  </span>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 400, color: '#9a8a78' }}>Base ${basePrice.toFixed(2)}</span>
                   <span style={{ color: '#d4c4a8' }}>+</span>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 400, color: '#9a8a78' }}>
-                    Variant ${effectiveVariantPrice.toFixed(2)}/unit
-                  </span>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 400, color: '#9a8a78' }}>Variant ${effectiveVariantPrice.toFixed(2)}/unit</span>
                 </div>
-                <span style={{ fontSize: '3rem', fontWeight: 600, color: '#2a1f14', lineHeight: 1.1 }}>
-                  ${totalPrice.toFixed(2)}
-                </span>
+                <span style={{ fontSize: '3rem', fontWeight: 600, color: '#2a1f14', lineHeight: 1.1 }}>${totalPrice.toFixed(2)}</span>
                 {activeTier && (
-                  <div className="jost text-xs text-emerald-700 font-medium mt-1">
-                    Bulk rate applied ({activeTier.min_qty}+ units)
-                  </div>
+                  <div className="jost text-xs text-emerald-700 font-medium mt-1">Bulk rate applied ({activeTier.min_qty}+ units)</div>
                 )}
               </div>
             </div>
 
-            {/* Price Tiers */}
             {selectedVariant?.price_tiers && selectedVariant.price_tiers.length > 0 && (
               <div className="rounded-xl border border-[#e8dfd4] overflow-hidden">
-                <div className="jost px-4 py-2.5 bg-[#f3ede6] text-[10px] uppercase tracking-widest text-[#8a7560] font-medium border-b border-[#e8dfd4]">
-                  Volume Pricing
-                </div>
+                <div className="jost px-4 py-2.5 bg-[#f3ede6] text-[10px] uppercase tracking-widest text-[#8a7560] font-medium border-b border-[#e8dfd4]">Volume Pricing</div>
                 <div className="grid" style={{ gridTemplateColumns: `repeat(${selectedVariant.price_tiers.length}, 1fr)` }}>
                   {selectedVariant.price_tiers
                     .sort((a, b) => a.min_qty - b.min_qty)
@@ -583,15 +530,12 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
               </div>
             )}
 
-            {/* Description */}
             {product.description && (
               <p className="jost text-[#6a5a4a] leading-relaxed text-sm">{product.description}</p>
             )}
 
-            {/* Divider */}
             <div className="border-t border-[#e8dfd4]" />
 
-            {/* Gender */}
             <div className="jost flex items-center gap-3 text-sm">
               <span className="text-[#9a8a78] text-xs uppercase tracking-widest font-medium">For</span>
               <span className="px-4 py-1.5 rounded-full bg-white border border-[#d4c4a8] text-[#5a4a3a] font-medium text-xs capitalize">
@@ -599,11 +543,8 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
               </span>
             </div>
 
-            {/* Color + Size — same row */}
             {uniqueColors.length > 0 && (
               <div className="flex gap-4 items-start">
-
-                {/* Color dropdown — compact */}
                 <div className="flex-shrink-0 w-40">
                   <p className="jost text-[10px] font-medium uppercase tracking-[0.15em] text-[#5a4a3a] mb-2">Color</p>
                   <div className="relative">
@@ -625,7 +566,6 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
                   </div>
                 </div>
 
-                {/* Sizes — fill remaining space */}
                 {sizesForColor.length > 0 && (
                   <div className="flex-1 min-w-0">
                     <div className="jost flex items-center justify-between mb-2">
@@ -670,7 +610,6 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
               </div>
             )}
 
-            {/* Logo Placements — multi-select */}
             {filteredCustomizations.length > 0 && (
               <div className="rounded-xl border border-[#e8dfd4] overflow-hidden">
                 <div className="jost px-4 py-3 bg-[#f3ede6] flex items-center justify-between border-b border-[#e8dfd4]">
@@ -712,33 +651,20 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
                               return next;
                             });
                           }}
-                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${
-                            isActive ? 'bg-[#fdf6ea]' : 'bg-white hover:bg-[#faf7f3]'
-                          }`}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${isActive ? 'bg-[#fdf6ea]' : 'bg-white hover:bg-[#faf7f3]'}`}
                         >
-                          {/* Checkbox */}
-                          <div className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-                            isActive ? 'border-[#c8a96e] bg-[#c8a96e]' : 'border-[#d4c4a8] bg-white'
-                          }`}>
+                          <div className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all ${isActive ? 'border-[#c8a96e] bg-[#c8a96e]' : 'border-[#d4c4a8] bg-white'}`}>
                             {isActive && (
                               <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
                                 <path d="M1 3L3 5L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                             )}
                           </div>
-
-                          {/* Logo thumbnail */}
-                          <div className={`w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center border overflow-hidden transition-all ${
-                            isActive ? 'border-[#c8a96e]' : 'border-[#e8dfd4]'
-                          }`} style={{ background: '#f3ede6' }}>
+                          <div className={`w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center border overflow-hidden transition-all ${isActive ? 'border-[#c8a96e]' : 'border-[#e8dfd4]'}`} style={{ background: '#f3ede6' }}>
                             <img src={c.logo_url} alt={c.logo_title} className="w-6 h-6 object-contain" />
                           </div>
-
-                          {/* Text */}
                           <div className="flex-1 min-w-0">
-                            <p className={`jost text-xs font-semibold uppercase tracking-wide truncate ${isActive ? 'text-[#c8a96e]' : 'text-[#5a4a3a]'}`}>
-                              {c.logo_title}
-                            </p>
+                            <p className={`jost text-xs font-semibold uppercase tracking-wide truncate ${isActive ? 'text-[#c8a96e]' : 'text-[#5a4a3a]'}`}>{c.logo_title}</p>
                             <p className="jost text-[11px] text-[#9a8a78] truncate">{c.custom_name}</p>
                           </div>
                         </button>
@@ -746,44 +672,31 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
                     })}
                   </div>
                   {filteredCustomizations.length > 3 && (
-                    <div
-                      className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none rounded-b-xl"
-                      style={{ background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.95))' }}
-                    />
+                    <div className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none rounded-b-xl" style={{ background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.95))' }} />
                   )}
                 </div>
               </div>
             )}
 
-            {/* Quantity + Add to Cart */}
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <div className="jost flex items-center gap-3">
                   <span className="text-xs font-medium uppercase tracking-[0.15em] text-[#5a4a3a]">Qty</span>
                   <div className="flex items-center gap-2">
-                    <button
-                      className="qty-btn"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={quantity <= 1}
-                    >
+                    <button className="qty-btn" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
                       <Minus size={14} />
                     </button>
                     <span className="w-10 text-center font-semibold text-[#2a1f14]" style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', fontSize: '1.2rem' }}>
                       {quantity}
                     </span>
-                    <button
-                      className="qty-btn"
-                      onClick={() => setQuantity(Math.min(selectedVariant?.stock ?? 99, quantity + 1))}
-                    >
+                    <button className="qty-btn" onClick={() => setQuantity(Math.min(selectedVariant?.stock ?? 99, quantity + 1))}>
                       <Plus size={14} />
                     </button>
                   </div>
                 </div>
                 <div className="flex-1 jost text-right">
                   <p className="text-[10px] text-[#9a8a78] uppercase tracking-wider">Order Total</p>
-                  <span className="font-semibold text-[#2a1f14]" style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', fontSize: '1.4rem' }}>
-                    ${totalPrice.toFixed(2)}
-                  </span>
+                  <span className="font-semibold text-[#2a1f14]" style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', fontSize: '1.4rem' }}>${totalPrice.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -792,48 +705,25 @@ const ly = (parseFloat(String(c.pos_y)) / 100) * H;
                   onClick={handleAddToCart}
                   disabled={!inStock || isCartLoading}
                   className="add-btn jost flex-1 py-4 px-4 rounded-xl font-semibold text-sm tracking-widest uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  style={{
-                    background: addedToCart ? '#38a169' : '#2a1f14',
-                    color: 'white',
-                  }}
+                  style={{ background: addedToCart ? '#38a169' : '#2a1f14', color: 'white' }}
                 >
                   {isCartLoading ? (
-                    <>
-                      <div
-                        className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"
-                      />
-                      <span>Adding...</span>
-                    </>
+                    <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /><span>Adding...</span></>
                   ) : addedToCart ? (
-                    <>
-                      <ShoppingBag size={16} />
-                      <span>Added to Cart!</span>
-                    </>
+                    <><ShoppingBag size={16} /><span>Added to Cart!</span></>
                   ) : (
-                    <>
-                      <ShoppingBag size={16} />
-                      <span>Add to Cart</span>
-                      <span className="ml-auto pl-4 border-l border-white/30 font-black">
-                        ${totalPrice.toFixed(2)}
-                      </span>
-                    </>
+                    <><ShoppingBag size={16} /><span>Add to Cart</span><span className="ml-auto pl-4 border-l border-white/30 font-black">${totalPrice.toFixed(2)}</span></>
                   )}
                 </button>
-
-                <button
-                  onClick={() => setWishlist(!wishlist)}
-                  className="jost w-14 rounded-xl border border-[#d4c4a8] bg-white flex items-center justify-center transition-all hover:border-red-300 hover:bg-red-50"
-                >
+                <button onClick={() => setWishlist(!wishlist)} className="jost w-14 rounded-xl border border-[#d4c4a8] bg-white flex items-center justify-center transition-all hover:border-red-300 hover:bg-red-50">
                   <Heart size={18} className={wishlist ? "fill-red-400 text-red-400" : "text-[#9a8a78]"} />
                 </button>
-
                 <button className="jost w-14 rounded-xl border border-[#d4c4a8] bg-white flex items-center justify-center transition-all hover:border-[#c8a96e] hover:bg-[#fdf6ea]">
                   <Share2 size={16} className="text-[#9a8a78]" />
                 </button>
               </div>
             </div>
 
-            {/* Trust badges */}
             <div className="grid grid-cols-3 gap-3 pt-2">
               {[
                 { icon: Truck, label: "Free Shipping", sub: "Orders over $99" },
