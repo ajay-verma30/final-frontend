@@ -45,13 +45,13 @@ function App() {
             </CartProvider>
           }
         />
-        <Route 
-          path="/shop" 
+        <Route
+          path="/shop"
           element={
             <CartProvider>
               <SubShop />
             </CartProvider>
-          } 
+          }
         />
         <Route
           path="/product/:slug"
@@ -61,30 +61,38 @@ function App() {
             </CartProvider>
           }
         />
-        <Route 
-          path="/cart" 
+        <Route
+          path="/cart"
           element={
             <CartProvider>
               <Cart />
             </CartProvider>
-          } 
+          }
         />
         <Route
-  path="/checkout"
-  element={
-    <CartProvider>
-      <Checkout />
-    </CartProvider>
-  }
-/>
-<Route
-  path="/orders"
-  element={
-    <CartProvider>
-      <OrderHistory />
-    </CartProvider>
-  }
-/>
+          path="/checkout"
+          element={
+            <CartProvider>
+              <Checkout />
+            </CartProvider>
+          }
+        />
+        <Route
+          path="/contact"
+          element={
+            <CartProvider>
+              <Checkout />
+            </CartProvider>
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            <CartProvider>
+              <OrderHistory />
+            </CartProvider>
+          }
+        />
 
         {/* ================= AUTH ROUTES ================= */}
         <Route path="/login" element={<Login />} />

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../api/axiosInstance";
 import ProductCard from "../shop/components/ProductCard";
 import { ChevronDown, X, Sparkles, ArrowRight, Zap } from "lucide-react";
@@ -33,7 +33,7 @@ const SEGMENT_LABELS: Record<ParentSegment, string> = {
 };
 
 /* ─── Hero Section ─────────────────────────────────────────── */
-const HeroSection = ({ onShopNow }: { onShopNow: () => void }) => {
+const HeroSection = ({ onShopNow, onGetQuote }: { onShopNow: () => void; onGetQuote: () => void }) => {
   return (
     <section
       style={{
@@ -137,8 +137,62 @@ const HeroSection = ({ onShopNow }: { onShopNow: () => void }) => {
             Custom-branded apparel, bags, and accessories — fulfilled at scale for your organization.
           </p>
 
+          {/* Stats row */}
+          <div style={{
+            display: "flex", gap: "32px", marginBottom: "40px",
+          }}>
+            {[
+              { value: "500+", label: "Products" },
+              { value: "48hr", label: "Turnaround" },
+              { value: "100%", label: "Custom" },
+            ].map((stat) => (
+              <div key={stat.label}>
+                <div style={{
+                  fontSize: "1.5rem", fontWeight: 900, color: "#fff",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}>
+                  {stat.value}
+                </div>
+                <div style={{
+                  fontSize: "0.7rem", fontWeight: 600,
+                  color: "rgba(148,163,184,0.7)",
+                  textTransform: "uppercase", letterSpacing: "0.1em",
+                }}>
+                  {stat.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* CTA */}
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            <button
+              onClick={onShopNow}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "8px",
+                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "12px",
+                padding: "14px 28px",
+                fontSize: "0.9rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 8px 32px rgba(99,102,241,0.4)",
+                transition: "transform 0.2s, box-shadow 0.2s",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)";
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 12px 40px rgba(99,102,241,0.55)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 32px rgba(99,102,241,0.4)";
+              }}
+            >
+              Shop Now <ArrowRight size={16} />
+            </button>
             <button
               style={{
                 display: "inline-flex", alignItems: "center", gap: "8px",
@@ -153,6 +207,7 @@ const HeroSection = ({ onShopNow }: { onShopNow: () => void }) => {
                 transition: "background 0.2s",
                 fontFamily: "'DM Sans', sans-serif",
               }}
+              onClick={onGetQuote}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.1)";
               }}
@@ -199,6 +254,26 @@ const HeroSection = ({ onShopNow }: { onShopNow: () => void }) => {
                 transform: "rotate(-4deg)",
               }}
             />
+            {/* Logo placement badge */}
+            <div style={{
+              position: "absolute",
+              top: "70px", left: "50%",
+              transform: "translateX(-50%)",
+              background: "rgba(99,102,241,0.85)",
+              backdropFilter: "blur(8px)",
+              borderRadius: "8px",
+              padding: "4px 10px",
+              fontSize: "9px",
+              fontWeight: 700,
+              color: "#fff",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              whiteSpace: "nowrap",
+              border: "1px solid rgba(165,180,252,0.4)",
+              pointerEvents: "none",
+            }}>
+              ✦ Logo Placement
+            </div>
           </div>
 
           {/* Bag — smaller, left, slightly behind */}
@@ -272,6 +347,7 @@ const HeroSection = ({ onShopNow }: { onShopNow: () => void }) => {
 
 /* ─── Main Shop Component ──────────────────────────────────── */
 const Shop = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -513,7 +589,7 @@ const Shop = () => {
       </div>
 
       {/* ── Hero Landing Section ── */}
-      {showHero && <HeroSection onShopNow={handleShopNow} />}
+      {showHero && <HeroSection onShopNow={handleShopNow} onGetQuote={() => navigate("/contact")} />}
 
       {/* ── Page body ── */}
       <div ref={productGridRef} className="max-w-screen-xl mx-auto px-8 py-10 flex gap-10">
