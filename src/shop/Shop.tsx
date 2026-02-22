@@ -97,9 +97,6 @@ const HeroSection = ({ onShopNow, onGetQuote }: { onShopNow: () => void; onGetQu
           Upload your logo. Pick your products. We handle the rest. Custom-branded apparel, bags, and accessories — fulfilled at scale for your organization.
         </p>
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <button onClick={onShopNow} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "linear-gradient(135deg, #6366f1, #8b5cf6)", color: "#fff", border: "none", borderRadius: "12px", padding: "14px 28px", fontSize: "0.9rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 8px 32px rgba(99,102,241,0.4)", fontFamily: "'DM Sans', sans-serif" }}>
-            Shop Now <ArrowRight size={16} />
-          </button>
           <button onClick={onGetQuote} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,255,255,0.06)", color: "rgba(203,213,225,0.9)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "12px", padding: "14px 24px", fontSize: "0.9rem", fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
             <Zap size={15} /> Get a Quote
           </button>
