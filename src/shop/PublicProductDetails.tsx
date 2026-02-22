@@ -5,6 +5,7 @@ import ShopNavbar from "./components/ShopNavbar";
 import { ShoppingBag, Shield, Truck, RotateCcw, ChevronRight, Star, Minus, Plus, Heart, Share2, ZoomIn } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import Footer from "./components/Footer";
 
 interface PriceTier {
   id: number;
@@ -741,6 +742,7 @@ export default function PublicProductDetails() {
           </div>
         </div>
       </main>
+      <Footer/>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, Tag } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import ShopNavbar from "./components/ShopNavbar";
 import api from "../api/axiosInstance";
+import Footer from "./components/Footer";
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -275,6 +276,7 @@ export default function Cart() {
 
         </div>
       </main>
+      <Footer/>
     </div>
   );
 }

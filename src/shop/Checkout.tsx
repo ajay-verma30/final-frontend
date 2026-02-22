@@ -5,6 +5,7 @@ import ShopNavbar from "./components/ShopNavbar";
 import StripeWrapper from "../components/StripeWrapper";
 import { useCart } from "../context/CartContext";
 import api from "../api/axiosInstance";
+import Footer from "./components/Footer";
 
 
 interface CheckoutData {
@@ -183,6 +184,7 @@ export default function Checkout() {
           </div>
         )}
       </main>
+      <Footer/>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import api from "../api/axiosInstance";
 import ProductCard from "../shop/components/ProductCard";
 import { ChevronRight, X, Sparkles, ArrowRight, Zap } from "lucide-react";
 import ShopNavbar from "./components/ShopNavbar";
+import Footer from "./components/Footer";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -495,6 +496,8 @@ const Shop = () => {
           )}
         </div>
       </div>
+
+      <Footer/>
     </div>
   );
 };

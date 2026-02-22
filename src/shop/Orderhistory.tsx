@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Package, ChevronDown, ChevronUp, ShoppingBag } from "lucide-react";
 import ShopNavbar from "./components/ShopNavbar";
 import api from "../api/axiosInstance";
+import Footer from "./components/Footer";
 
 interface OrderItem {
   id: number;
@@ -209,6 +210,7 @@ export default function OrderHistory() {
           </div>
         )}
       </main>
+      <Footer/>
     </div>
   );
 }
