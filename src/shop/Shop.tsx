@@ -15,8 +15,9 @@ interface Product {
   category_id: number;
   category_name: string;
   category_slug: string;
-  parent_segment: string;
-  gender: string;
+  parent_segment: string;   // from c.parent_segment in controller
+  gender: string;           // from c.gender in controller
+  supports_gender: number;  // from c.supports_gender in controller
   sub_category_id: number;
   sub_category_name: string;
   main_image: string | null;
@@ -276,7 +277,9 @@ const Shop = () => {
   const filteredProducts = products.filter(p => {
     const matchSearch   = !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchSegment  = !selectedSegment || p.parent_segment === selectedSegment;
-    const matchGender   = !selectedGender  || p.gender === selectedGender;
+    // gender comes from c.gender in the products query — fall back to category lookup if somehow missing
+    const productGender = p.gender || allCategories.find(c => c.id === p.category_id)?.gender || "UNISEX";
+    const matchGender   = !selectedGender || productGender === selectedGender;
     const matchCategory = !selectedCategoryId || p.category_id === selectedCategoryId;
     const matchSub      = !selectedSubId   || p.sub_category_id === selectedSubId;
     return matchSearch && matchSegment && matchGender && matchCategory && matchSub;
@@ -285,7 +288,11 @@ const Shop = () => {
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleSegmentSelect = (seg: string) => {
-    if (selectedSegment === seg) return;
+    if (selectedSegment === seg) {
+      // toggle off — clicking active segment deselects it
+      clearAll();
+      return;
+    }
     setSelectedSegment(seg);
     setSelectedGender(null);
     setSelectedCategoryId(null);
