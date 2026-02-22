@@ -14,6 +14,7 @@ const Navbar: React.FC = () => {
   const goToCoupons = () => { navigate("/coupons"); setDropdownOpen(false); };
   const goToCart = () => navigate("/cart");
   const goToLogin = () => navigate("/login");
+  const goToOrders = () => navigate("/orders");
 
   const handleLogout = async () => {
     await logout();
@@ -73,6 +74,14 @@ const Navbar: React.FC = () => {
                       className="w-full text-left px-4 py-2 text-slate-700 hover:bg-slate-100 flex items-center gap-2"
                     >
                       <Plus className="w-4 h-4" /> Add Coupons
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={goToOrders}
+                      className="w-full text-left px-4 py-2 text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" /> My Orders
                     </button>
                   </li>
                   <hr className="my-1 border-slate-100" />
