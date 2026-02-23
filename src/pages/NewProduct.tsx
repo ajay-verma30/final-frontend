@@ -115,17 +115,19 @@ const NewProduct: React.FC = () => {
       setProductId(res.data.productId);
       setStep(2);
     } catch (err: any) {
-      // ✅ Properly extract message — handles string, object, nested cases
-      console.error("CREATE PRODUCT ERROR full response:", err?.response?.data);
-      const raw = err?.response?.data;
-      const msg =
-        typeof raw?.message === "string"
-          ? raw.message
-          : raw?.error
-          ? String(raw.error)
-          : err?.message
-          ? err.message
-          : "Product create karne mein error aaya. Console check karein.";
+      const status  = err?.response?.status;
+      const rawData = err?.response?.data;
+      console.error("CREATE PRODUCT — HTTP", status, rawData);
+
+      // HTML response = Express middleware crash (upload/auth/DB)
+      const isHtml = typeof rawData === "string" && rawData.trim().startsWith("<");
+      const msg = isHtml
+        ? `Server error (${status}): Backend middleware crash — Railway logs check karein`
+        : typeof rawData?.message === "string"
+        ? rawData.message
+        : rawData?.error
+        ? String(rawData.error)
+        : err?.message || "Unknown error — console check karein";
       setErrorMsg(msg);
     } finally {
       setLoading(false);
@@ -379,7 +381,16 @@ const VariantSection = ({ productId, onFinish }: { productId: number; onFinish: 
       setSelectedImages([]);
       alert("Variant successfully add ho gaya!");
     } catch (err: any) {
-      alert(err.response?.data?.message || "Error adding variant");
+      const status  = err?.response?.status;
+      const rawData = err?.response?.data;
+      console.error("ADD VARIANT — HTTP", status, rawData);
+      const isHtml  = typeof rawData === "string" && rawData.trim().startsWith("<");
+      const msg = isHtml
+        ? `Server error (${status}): Backend crash — Railway logs check karein`
+        : typeof rawData?.message === "string"
+        ? rawData.message
+        : err?.message || "Error adding variant";
+      alert(msg);
     } finally {
       setLoading(false);
     }
