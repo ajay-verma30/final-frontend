@@ -11,6 +11,7 @@ import {
   Check,
   Trash2,
   Move,
+  RotateCcw,
 } from "lucide-react";
 
 interface Logo {
@@ -34,10 +35,11 @@ interface Placement {
   product_variant_image_id: number;
   logo_variant_id: number;
   image_url: string;
-  x: number; // percentage 0-100
-  y: number; // percentage 0-100
-  w: number; // percentage 0-100
-  h: number; // percentage 0-100
+  x: number;       // percentage 0-100
+  y: number;       // percentage 0-100
+  w: number;       // percentage 0-100
+  h: number;       // percentage 0-100
+  rotation: number; // degrees, -180 to 180
 }
 
 const MIN_SIZE_PCT = 5;
@@ -56,7 +58,6 @@ const CustomizeProduct: React.FC = () => {
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null);
 
-  // Design name
   const [designName, setDesignName] = useState("");
   const [nameError, setNameError] = useState(false);
 
@@ -83,6 +84,15 @@ const CustomizeProduct: React.FC = () => {
     corner: string;
     startX: number;
     startY: number;
+  } | null>(null);
+
+  // Rotate state
+  const rotating = useRef<{
+    id: string;
+    centerX: number;  // canvas-relative px
+    centerY: number;
+    startAngle: number;
+    startRotation: number;
   } | null>(null);
 
   // =========================
@@ -112,7 +122,6 @@ const CustomizeProduct: React.FC = () => {
         setLoading(false);
       }
     };
-
     init();
   }, [id]);
 
@@ -125,7 +134,6 @@ const CustomizeProduct: React.FC = () => {
       setSelectedLogoVariants([]);
       return;
     }
-
     try {
       setFetchingVariants(true);
       setActiveLogoId(logoId);
@@ -141,33 +149,33 @@ const CustomizeProduct: React.FC = () => {
   // =========================
   // ADD LOGO TO CANVAS
   // =========================
-const addVariantToCanvas = (variant: LogoVariant) => {
-  if (!selectedMainImage) return;
+  const addVariantToCanvas = (variant: LogoVariant) => {
+    if (!selectedMainImage) return;
 
-  // Guard: don't allow same logo variant on same image twice
-  const alreadyExists = placements.some(
-    (p) => p.logo_variant_id === variant.id && p.product_variant_image_id === selectedMainImage.id
-  );
-  if (alreadyExists) {
-    alert(`This logo variant is already placed on this image.`);
-    return;
-  }
+    const alreadyExists = placements.some(
+      (p) => p.logo_variant_id === variant.id && p.product_variant_image_id === selectedMainImage.id
+    );
+    if (alreadyExists) {
+      alert(`This logo variant is already placed on this image.`);
+      return;
+    }
 
-  const newId = crypto.randomUUID();
-  const newPlacement: Placement = {
-    id: newId,
-    product_variant_image_id: selectedMainImage.id,
-    logo_variant_id: variant.id,
-    image_url: variant.image_url,
-    x: 35,
-    y: 35,
-    w: 20,
-    h: 20,
+    const newId = crypto.randomUUID();
+    const newPlacement: Placement = {
+      id: newId,
+      product_variant_image_id: selectedMainImage.id,
+      logo_variant_id: variant.id,
+      image_url: variant.image_url,
+      x: 35,
+      y: 35,
+      w: 20,
+      h: 20,
+      rotation: 0,   // default — no rotation
+    };
+
+    setPlacements((prev) => [...prev, newPlacement]);
+    setSelectedPlacementId(newId);
   };
-
-  setPlacements((prev) => [...prev, newPlacement]);
-  setSelectedPlacementId(newId);
-};
 
   // =========================
   // MOUSE DRAG
@@ -210,11 +218,44 @@ const addVariantToCanvas = (variant: LogoVariant) => {
     };
   };
 
+  // =========================
+  // ROTATE MOUSE DOWN
+  // =========================
+  const onRotateMouseDown = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedPlacementId(id);
+
+    const rect = getContainerRect();
+    if (!rect) return;
+
+    const p = placements.find((pl) => pl.id === id)!;
+
+    // Center of the logo element in canvas px
+    const centerX = rect.left + (rect.width  * (p.x + p.w / 2)) / 100;
+    const centerY = rect.top  + (rect.height * (p.y + p.h / 2)) / 100;
+
+    // Angle from center to mouse at mousedown
+    const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+
+    rotating.current = {
+      id,
+      centerX,
+      centerY,
+      startAngle,
+      startRotation: p.rotation,
+    };
+  };
+
+  // =========================
+  // MOUSE MOVE
+  // =========================
   const onMouseMove = useCallback(
     (e: MouseEvent) => {
       const rect = getContainerRect();
       if (!rect) return;
 
+      // ── Drag ──
       if (dragging.current) {
         const { id, startMouseX, startMouseY, startX, startY } = dragging.current;
         const dx = ((e.clientX - startMouseX) / rect.width) * 100;
@@ -230,6 +271,7 @@ const addVariantToCanvas = (variant: LogoVariant) => {
         );
       }
 
+      // ── Resize ──
       if (resizing.current) {
         const { id, startMouseX, startMouseY, startW, startH, corner, startX, startY } =
           resizing.current;
@@ -257,7 +299,6 @@ const addVariantToCanvas = (variant: LogoVariant) => {
               newY = startY + (startH - newH);
             }
 
-            // Clamp within canvas
             newW = Math.min(newW, 100 - newX);
             newH = Math.min(newH, 100 - newY);
 
@@ -265,13 +306,31 @@ const addVariantToCanvas = (variant: LogoVariant) => {
           })
         );
       }
+
+      // ── Rotate ──
+      if (rotating.current) {
+        const { id, centerX, centerY, startAngle, startRotation } = rotating.current;
+
+        const currentAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+        const delta = currentAngle - startAngle;
+        let newRotation = startRotation + delta;
+
+        // Normalize to -180..180
+        newRotation = ((newRotation % 360) + 360) % 360;
+        if (newRotation > 180) newRotation -= 360;
+
+        setPlacements((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, rotation: Math.round(newRotation * 10) / 10 } : p))
+        );
+      }
     },
     [placements]
   );
 
   const onMouseUp = useCallback(() => {
-    dragging.current = null;
-    resizing.current = null;
+    dragging.current  = null;
+    resizing.current  = null;
+    rotating.current  = null;
   }, []);
 
   useEffect(() => {
@@ -292,48 +351,64 @@ const addVariantToCanvas = (variant: LogoVariant) => {
   };
 
   // =========================
+  // ROTATION HELPERS
+  // =========================
+  const setRotationForSelected = (deg: number) => {
+    if (!selectedPlacementId) return;
+    // Clamp to -180..180
+    let clamped = ((deg % 360) + 360) % 360;
+    if (clamped > 180) clamped -= 360;
+    setPlacements((prev) =>
+      prev.map((p) => (p.id === selectedPlacementId ? { ...p, rotation: clamped } : p))
+    );
+  };
+
+  const resetRotation = () => setRotationForSelected(0);
+
+  // =========================
   // SAVE
   // =========================
   const handleSave = async () => {
-  if (!designName.trim()) {
-    setNameError(true);
-    return;
-  }
-  if (!placements.length) {
-    alert("Add at least one logo to the canvas.");
-    return;
-  }
-
-  // Deduplicate: keep only the last placement per (logo_variant_id + product_variant_image_id)
-  const seen = new Map<string, Placement>();
-  for (const p of placements) {
-    const key = `${p.logo_variant_id}_${p.product_variant_image_id}`;
-    seen.set(key, p); // later placement overwrites earlier one
-  }
-  const uniquePlacements = Array.from(seen.values());
-
-  try {
-    setSaving(true);
-    for (const p of uniquePlacements) {
-      await api.post("/api/customizations/add", {
-        name: designName.trim(),
-        product_id: id,
-        product_variant_image_id: p.product_variant_image_id,
-        logo_variant_id: p.logo_variant_id,
-        pos_x: p.x,
-        pos_y: p.y,
-        logo_width: p.w,
-        logo_height: p.h,
-      });
+    if (!designName.trim()) {
+      setNameError(true);
+      return;
     }
-    alert("Customization saved successfully!");
-  } catch (err) {
-    console.error("Save Error:", err);
-    alert("Save failed. Please try again.");
-  } finally {
-    setSaving(false);
-  }
-};
+    if (!placements.length) {
+      alert("Add at least one logo to the canvas.");
+      return;
+    }
+
+    // Deduplicate: keep only the last placement per (logo_variant_id + product_variant_image_id)
+    const seen = new Map<string, Placement>();
+    for (const p of placements) {
+      const key = `${p.logo_variant_id}_${p.product_variant_image_id}`;
+      seen.set(key, p);
+    }
+    const uniquePlacements = Array.from(seen.values());
+
+    try {
+      setSaving(true);
+      for (const p of uniquePlacements) {
+        await api.post("/api/customizations/add", {
+          name:                     designName.trim(),
+          product_id:               id,
+          product_variant_image_id: p.product_variant_image_id,
+          logo_variant_id:          p.logo_variant_id,
+          pos_x:                    p.x,
+          pos_y:                    p.y,
+          logo_width:               p.w,
+          logo_height:              p.h,
+          rotation:                 p.rotation,  // ← NEW
+        });
+      }
+      alert("Customization saved successfully!");
+    } catch (err) {
+      console.error("Save Error:", err);
+      alert("Save failed. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // =========================
   // CANVAS CLICK DESELECT
@@ -343,6 +418,8 @@ const addVariantToCanvas = (variant: LogoVariant) => {
       setSelectedPlacementId(null);
     }
   };
+
+  const selectedPlacement = placements.find((p) => p.id === selectedPlacementId);
 
   if (loading) {
     return (
@@ -455,6 +532,8 @@ const addVariantToCanvas = (variant: LogoVariant) => {
                       top: `${p.y}%`,
                       width: `${p.w}%`,
                       height: `${p.h}%`,
+                      transform: `rotate(${p.rotation}deg)`,
+                      transformOrigin: "center center",
                       outline: isSelected ? "2px dashed #6366f1" : "2px solid transparent",
                       boxSizing: "border-box",
                       cursor: "move",
@@ -478,9 +557,7 @@ const addVariantToCanvas = (variant: LogoVariant) => {
                     {isSelected && (
                       <>
                         {/* Move icon center */}
-                        <div
-                          className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                        >
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                           <Move size={14} className="text-indigo-500 opacity-60" />
                         </div>
 
@@ -496,6 +573,52 @@ const addVariantToCanvas = (variant: LogoVariant) => {
                         >
                           <Trash2 size={10} />
                         </button>
+
+                        {/* ── Rotate handle — sits above the element ── */}
+                        <div
+                          onMouseDown={(e) => onRotateMouseDown(e, p.id)}
+                          title="Drag to rotate"
+                          style={{
+                            position: "absolute",
+                            top: -28,
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            width: 18,
+                            height: 18,
+                            background: "#6366f1",
+                            border: "2px solid white",
+                            borderRadius: "50%",
+                            cursor: "grab",
+                            zIndex: 21,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: "0 2px 6px rgba(99,102,241,0.5)",
+                          }}
+                        >
+                          <RotateCcw size={9} color="white" />
+                        </div>
+
+                        {/* Rotation angle badge */}
+                        {p.rotation !== 0 && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: -28,
+                              right: -8,
+                              background: "rgba(99,102,241,0.85)",
+                              color: "#fff",
+                              fontSize: "9px",
+                              fontWeight: 700,
+                              padding: "1px 5px",
+                              borderRadius: "4px",
+                              pointerEvents: "none",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {p.rotation > 0 ? "+" : ""}{p.rotation.toFixed(1)}°
+                          </div>
+                        )}
 
                         {/* Resize handles – 8 directions */}
                         {(["nw","n","ne","e","se","s","sw","w"] as const).map((corner) => {
@@ -534,7 +657,7 @@ const addVariantToCanvas = (variant: LogoVariant) => {
             </div>
           </div>
 
-          {/* RIGHT PANEL – Views + Save */}
+          {/* RIGHT PANEL – Views + Rotation Controls + Save */}
           <div className="w-72 bg-white border-l border-slate-200 p-4 flex flex-col flex-shrink-0 overflow-y-auto">
             <h3 className="text-sm font-bold mb-3 text-slate-700 uppercase tracking-wider">
               Product Views
@@ -564,6 +687,72 @@ const addVariantToCanvas = (variant: LogoVariant) => {
                 </div>
               ))}
             </div>
+
+            {/* ── Rotation Controls — shown when a placement is selected ── */}
+            {selectedPlacement && (
+              <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
+                    <RotateCcw size={11} className="text-indigo-500" />
+                    Rotation
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                      {selectedPlacement.rotation > 0 ? "+" : ""}{selectedPlacement.rotation.toFixed(1)}°
+                    </span>
+                    <button
+                      onClick={resetRotation}
+                      title="Reset rotation"
+                      className="text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      <RotateCcw size={12} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Slider */}
+                <input
+                  type="range"
+                  min={-180}
+                  max={180}
+                  step={0.5}
+                  value={selectedPlacement.rotation}
+                  onChange={(e) => setRotationForSelected(parseFloat(e.target.value))}
+                  className="w-full accent-indigo-600 mb-2"
+                />
+
+                {/* Quick angle presets */}
+                <div className="grid grid-cols-4 gap-1">
+                  {[-90, -45, 0, 45, 90, 135, -135, 180].map((deg) => (
+                    <button
+                      key={deg}
+                      onClick={() => setRotationForSelected(deg)}
+                      className={`text-xs font-semibold py-1 rounded-lg border transition-all ${
+                        Math.round(selectedPlacement.rotation) === deg
+                          ? "bg-indigo-600 text-white border-indigo-600"
+                          : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                      }`}
+                    >
+                      {deg}°
+                    </button>
+                  ))}
+                </div>
+
+                {/* Manual number input */}
+                <div className="mt-2">
+                  <input
+                    type="number"
+                    min={-180}
+                    max={180}
+                    step={1}
+                    value={Math.round(selectedPlacement.rotation * 10) / 10}
+                    onChange={(e) => setRotationForSelected(parseFloat(e.target.value) || 0)}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-center font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    placeholder="Enter degrees"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Design Name */}
             <div className="mb-3">
