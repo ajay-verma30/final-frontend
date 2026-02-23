@@ -40,6 +40,7 @@ const NewProduct: React.FC = () => {
   const [loading, setLoading]     = useState(false);
   const [step, setStep]           = useState(1);
   const [productId, setProductId] = useState<number | null>(null);
+  const [errorMsg, setErrorMsg]   = useState<string | null>(null);   // ✅ NEW
   const [categories, setCategories]       = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
 
@@ -90,6 +91,7 @@ const NewProduct: React.FC = () => {
   // ── Step 1: Submit Product ──────────────────────────────────────────────────
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
     setLoading(true);
     try {
       const formData = new FormData();
@@ -113,7 +115,18 @@ const NewProduct: React.FC = () => {
       setProductId(res.data.productId);
       setStep(2);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Error creating product");
+      // ✅ Properly extract message — handles string, object, nested cases
+      console.error("CREATE PRODUCT ERROR full response:", err?.response?.data);
+      const raw = err?.response?.data;
+      const msg =
+        typeof raw?.message === "string"
+          ? raw.message
+          : raw?.error
+          ? String(raw.error)
+          : err?.message
+          ? err.message
+          : "Product create karne mein error aaya. Console check karein.";
+      setErrorMsg(msg);
     } finally {
       setLoading(false);
     }
@@ -213,6 +226,20 @@ const NewProduct: React.FC = () => {
                     )}
                   </div>
                 </div>
+
+                {/* ✅ Error banner */}
+                {errorMsg && (
+                  <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                    <span className="text-lg leading-none">⚠️</span>
+                    <div>
+                      <p className="font-bold text-sm">Error</p>
+                      <p className="text-sm mt-0.5">{errorMsg}</p>
+                    </div>
+                    <button type="button" onClick={() => setErrorMsg(null)} className="ml-auto text-red-400 hover:text-red-600">
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
 
                 <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2">
                   {loading ? "Processing..." : "Save & Continue to Variants"} <ArrowRight size={18} />
