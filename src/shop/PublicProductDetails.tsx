@@ -171,7 +171,8 @@ export default function PublicProductDetails() {
       base.crossOrigin = "anonymous";
       base.onerror = () => reject(new Error("Failed to load product image"));
       base.onload = () => {
-        const scale = Math.max(W / base.width, H / base.height);
+        // object-contain: scale to fit within canvas, preserving aspect ratio
+        const scale = Math.min(W / base.width, H / base.height);
         const dw = base.width * scale, dh = base.height * scale;
         ctx.drawImage(base, (W - dw) / 2, (H - dh) / 2, dw, dh);
 
@@ -373,7 +374,7 @@ export default function PublicProductDetails() {
                     <img
                       src={selectedImage.url}
                       alt={product.name}
-                      className="w-full h-full object-cover transition-transform duration-700"
+                      className="w-full h-full object-contain transition-transform duration-700"
                       style={{ transform: imageZoomed ? 'scale(1.5)' : 'scale(1)' }}
                     />
                   ) : (
