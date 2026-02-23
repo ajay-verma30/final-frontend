@@ -42,6 +42,7 @@ interface Customization {
   pos_y: number;
   logo_width: number;
   logo_height?: number;
+  rotation: number; // degrees, -180 to 180 (default 0)
 }
 
 interface Product {
@@ -193,7 +194,18 @@ export default function PublicProductDetails() {
               : lw * (logo.naturalHeight / logo.naturalWidth);
             const lx = (parseFloat(String(c.pos_x)) / 100) * W;
             const ly = (parseFloat(String(c.pos_y)) / 100) * H;
-            ctx.drawImage(logo, lx, ly, lw, lh);
+
+            // Apply rotation around the logo center
+            const rotation = (c.rotation ?? 0) * (Math.PI / 180); // degrees → radians
+            const cx = lx + lw / 2; // logo center x
+            const cy = ly + lh / 2; // logo center y
+
+            ctx.save();
+            ctx.translate(cx, cy);       // move origin to logo center
+            ctx.rotate(rotation);         // rotate
+            ctx.drawImage(logo, -lw / 2, -lh / 2, lw, lh); // draw centered
+            ctx.restore();               // reset transform for next logo
+
             drawLogos(index + 1);
           };
           logo.src = c.logo_url;
@@ -380,7 +392,9 @@ export default function PublicProductDetails() {
                           top: `${c.pos_y}%`,
                           left: `${c.pos_x}%`,
                           width: `${c.logo_width}%`,
-                          height: c.logo_height ? `${c.logo_height}%` : "auto"
+                          height: c.logo_height ? `${c.logo_height}%` : "auto",
+                          transform: `rotate(${c.rotation ?? 0}deg)`,
+                          transformOrigin: "center center",
                         }}
                       >
                         <img src={c.logo_url} alt={c.logo_title} className="w-full h-full object-contain" />
