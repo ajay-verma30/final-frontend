@@ -20,13 +20,19 @@ interface ProductImage {
   view_type: string;
 }
 
+interface VariantSize {
+  id: number;
+  size: string;
+  sku: string;
+  stock: number;
+}
+
 interface Variant {
   id: number;
   color: string;
-  size: string;
   variant_price: string;
   sku: string;
-  stock: number;
+  sizes: VariantSize[];
   images: ProductImage[];
   price_tiers: PriceTier[];
 }
@@ -92,6 +98,7 @@ export default function PublicProductDetails() {
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [selectedColor, setSelectedColor] = useState<string>("");
+  const [selectedSize, setSelectedSize] = useState<VariantSize | null>(null);
   const [selectedImage, setSelectedImage] = useState<ProductImage | null>(null);
   const [selectedCustomizations, setSelectedCustomizations] = useState<Set<number>>(new Set());
   const [quantity, setQuantity] = useState(1);
@@ -114,6 +121,7 @@ export default function PublicProductDetails() {
         setSelectedColor(firstVariant.color);
         setSelectedVariant(firstVariant);
         setSelectedImage(firstVariant?.images[0] || null);
+        setSelectedSize(firstVariant.sizes?.[0] || null);
       }
     });
   }, [slug]);
@@ -132,7 +140,8 @@ export default function PublicProductDetails() {
   );
 
   const uniqueColors = Array.from(new Map(product.variants.map((v) => [v.color, v])).values());
-  const sizesForColor = product.variants.filter((v) => v.color === selectedColor);
+  // sizes come from the selected color variant's sizes array
+  const sizesForColor = selectedVariant?.sizes ?? [];
 
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
@@ -141,19 +150,19 @@ export default function PublicProductDetails() {
     if (firstOfColor) {
       setSelectedVariant(firstOfColor);
       setSelectedImage(firstOfColor.images[0] || null);
+      setSelectedSize(firstOfColor.sizes?.[0] || null);
     }
   };
 
-  const handleSizeSelect = (variant: Variant) => {
-    if (variant.stock === 0) return;
-    setSelectedVariant(variant);
-    setSelectedImage(variant.images[0] || null);
+  const handleSizeSelect = (sizeObj: VariantSize) => {
+    if (sizeObj.stock === 0) return;
+    setSelectedSize(sizeObj);
     setSelectedCustomizations(new Set());
   };
 
   const basePrice = parseFloat(product.base_price) || 0;
   const variantPrice = parseFloat(selectedVariant?.variant_price || "0") || 0;
-  const inStock = (selectedVariant?.stock ?? 0) > 0;
+  const inStock = (selectedSize?.stock ?? 0) > 0;
 
   const buildCompositeBlob = (
     productImgUrl: string,
@@ -222,7 +231,7 @@ export default function PublicProductDetails() {
       navigate('/login');
       return;
     }
-    if (!selectedVariant || !selectedImage) return;
+    if (!selectedVariant || !selectedImage || !selectedSize) return;
 
     setIsCartLoading(true);
     try {
@@ -458,7 +467,7 @@ export default function PublicProductDetails() {
                     <div><span className="text-[#9a8a78] text-[10px] uppercase tracking-wider block">Gender</span><p className="font-medium text-[#5a4a3a] mt-0.5 capitalize">{product.gender.toLowerCase()}</p></div>
                     <div><span className="text-[#9a8a78] text-[10px] uppercase tracking-wider block">Category</span><p className="font-medium text-[#5a4a3a] mt-0.5 capitalize">{product.category.slug.replace(/-/g, ' ')}</p></div>
                     <div><span className="text-[#9a8a78] text-[10px] uppercase tracking-wider block">Style</span><p className="font-medium text-[#5a4a3a] mt-0.5 capitalize">{product.subcategory.slug.replace(/-/g, ' ')}</p></div>
-                    <div><span className="text-[#9a8a78] text-[10px] uppercase tracking-wider block">SKU</span><p className="font-medium text-[#5a4a3a] mt-0.5">{selectedVariant?.sku || '—'}</p></div>
+                    <div><span className="text-[#9a8a78] text-[10px] uppercase tracking-wider block">SKU</span><p className="font-medium text-[#5a4a3a] mt-0.5">{selectedSize?.sku || selectedVariant?.sku || '—'}</p></div>
                   </div>
                 )}
                 {activeTab === "sizing" && (
@@ -473,6 +482,23 @@ export default function PublicProductDetails() {
                 )}
               </div>
             </div>
+            {/* Category Asset Banner */}
+            {product.category.assets?.length > 0 && (
+              <div className="rounded-2xl overflow-hidden border border-[#e8dfd4] relative" style={{ aspectRatio: '16/7' }}>
+                <img
+                  src={product.category.assets[0].image_url}
+                  alt={product.category.slug}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                <div className="absolute bottom-4 left-4">
+                  <p className="jost text-[9px] uppercase tracking-[0.2em] text-white/70 mb-0.5">Collection</p>
+                  <p className="jost text-sm font-semibold text-white capitalize tracking-wide">
+                    {product.category.slug.replace(/-/g, ' ')}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ─── RIGHT: PRODUCT INFO ─── */}
@@ -488,7 +514,7 @@ export default function PublicProductDetails() {
                     ? 'text-emerald-700 bg-emerald-50 border-emerald-100'
                     : 'text-red-600 bg-red-50 border-red-100'
                 }`}>
-                  {inStock ? `In Stock · ${selectedVariant?.stock} left` : 'Out of Stock'}
+                  {inStock ? `In Stock · ${selectedSize?.stock} left` : 'Out of Stock'}
                 </span>
               </div>
 
@@ -504,7 +530,7 @@ export default function PublicProductDetails() {
                   <span className="text-[#8a7560] text-xs ml-1.5">4.0 (24 reviews)</span>
                 </div>
                 <span className="text-[#d4c4a8]">·</span>
-                <span className="text-[#8a7560] text-xs">SKU: {selectedVariant?.sku || '—'}</span>
+                <span className="text-[#8a7560] text-xs">SKU: {selectedSize?.sku || selectedVariant?.sku || '—'}</span>
               </div>
             </div>
 
@@ -616,15 +642,15 @@ export default function PublicProductDetails() {
                       <button className="text-[10px] text-[#c8a96e] underline underline-offset-2">Guide</button>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {sizesForColor.map((v) => {
-                        const outOfStock = v.stock === 0;
-                        const isSelected = selectedVariant?.id === v.id;
+                      {sizesForColor.map((sizeObj) => {
+                        const outOfStock = sizeObj.stock === 0;
+                        const isSelected = selectedSize?.id === sizeObj.id;
                         return (
                           <button
-                            key={v.id}
-                            onClick={() => handleSizeSelect(v)}
+                            key={sizeObj.id}
+                            onClick={() => handleSizeSelect(sizeObj)}
                             disabled={outOfStock}
-                            title={outOfStock ? "Out of stock" : `${v.size} — ${v.stock} left`}
+                            title={outOfStock ? "Out of stock" : `${sizeObj.size} — ${sizeObj.stock} left`}
                             className={`jost relative w-11 h-11 rounded-lg border font-medium text-sm transition-all
                               ${isSelected
                                 ? 'border-[#5a4a3a] bg-[#5a4a3a] text-white shadow-md'
@@ -638,14 +664,14 @@ export default function PublicProductDetails() {
                                 <span className="absolute w-[130%] h-px bg-[#c8bfb4] rotate-[-30deg]" />
                               </span>
                             )}
-                            {v.size}
+                            {sizeObj.size}
                           </button>
                         );
                       })}
                     </div>
-                    {selectedVariant && (
+                    {selectedSize && (
                       <p className="jost text-[10px] text-[#9a8a78] mt-1.5">
-                        {selectedVariant.stock > 0 ? `${selectedVariant.stock} in stock` : "Out of stock"}
+                        {selectedSize.stock > 0 ? `${selectedSize.stock} in stock` : "Out of stock"}
                       </p>
                     )}
                   </div>
@@ -732,7 +758,7 @@ export default function PublicProductDetails() {
                     <span className="w-10 text-center font-semibold text-[#2a1f14]" style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', fontSize: '1.2rem' }}>
                       {quantity}
                     </span>
-                    <button className="qty-btn" onClick={() => setQuantity(Math.min(selectedVariant?.stock ?? 99, quantity + 1))}>
+                    <button className="qty-btn" onClick={() => setQuantity(Math.min(selectedSize?.stock ?? 99, quantity + 1))}>
                       <Plus size={14} />
                     </button>
                   </div>
