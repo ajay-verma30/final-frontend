@@ -561,24 +561,51 @@ export default function PublicProductDetails() {
 
             {uniqueColors.length > 0 && (
               <div className="flex gap-4 items-start">
-                <div className="flex-shrink-0 w-40">
-                  <p className="jost text-[10px] font-medium uppercase tracking-[0.15em] text-[#5a4a3a] mb-2">Color</p>
-                  <div className="relative">
-                    <span
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border border-[#d4c4a8] z-10 pointer-events-none"
-                      style={{ backgroundColor: getColorHex(selectedColor) }}
-                    />
-                    <select
-                      value={selectedColor}
-                      onChange={(e) => handleColorChange(e.target.value)}
-                      className="jost select-custom w-full border border-[#d4c4a8] rounded-lg pl-8 pr-7 py-2.5 text-sm text-[#5a4a3a] bg-white outline-none focus:border-[#c8a96e] focus:ring-2 focus:ring-[#c8a96e]/20 transition-all"
-                    >
-                      {uniqueColors.map((v) => (
-                        <option key={v.color} value={v.color}>
-                          {v.color.charAt(0) + v.color.slice(1).toLowerCase()}
-                        </option>
-                      ))}
-                    </select>
+                <div className="flex-shrink-0">
+                  <p className="jost text-[10px] font-medium uppercase tracking-[0.15em] text-[#5a4a3a] mb-2.5">
+                    Color — <span className="text-[#c8a96e] normal-case font-semibold">{selectedColor.charAt(0) + selectedColor.slice(1).toLowerCase()}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {uniqueColors.map((v) => {
+                      const hex = getColorHex(v.color);
+                      const isSelected = selectedColor === v.color;
+                      const light = isLightColor(hex);
+                      return (
+                        <label
+                          key={v.color}
+                          title={v.color.charAt(0) + v.color.slice(1).toLowerCase()}
+                          className="cursor-pointer"
+                        >
+                          <input
+                            type="radio"
+                            name="color"
+                            value={v.color}
+                            checked={isSelected}
+                            onChange={() => handleColorChange(v.color)}
+                            className="sr-only"
+                          />
+                          <span
+                            className={`color-swatch flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all
+                              ${isSelected
+                                ? 'border-[#5a4a3a] shadow-md ring-2 ring-[#5a4a3a]/20'
+                                : 'border-[#d4c4a8] hover:border-[#5a4a3a]'
+                              }`}
+                            style={{ background: isSelected ? '#fdf6ea' : 'white' }}
+                          >
+                            <span
+                              className="w-4 h-4 rounded-full flex-shrink-0 border"
+                              style={{
+                                backgroundColor: hex,
+                                borderColor: light ? '#d4c4a8' : 'transparent',
+                              }}
+                            />
+                            <span className="jost text-[11px] text-[#5a4a3a] tracking-wide">
+                              {v.color.charAt(0) + v.color.slice(1).toLowerCase()}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
 
