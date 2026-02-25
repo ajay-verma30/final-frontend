@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { 
   Building2, Users, Package, Layers, 
   Image as ImageIcon, MessageSquare, 
-  ChevronDown, LayoutDashboard, BadgeDollarSign
+  ChevronDown, LayoutDashboard, BadgeDollarSign, Cable
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -61,6 +61,7 @@ const Sidebar: React.FC = () => {
                 { label: "Products", onClick: () => navigate("/all-products") }
               ]}
             />
+            <SidebarItem icon={<Cable size={20} />} label="Sanmar" onClick={() => navigate("/sanmar")} />
 
             <SidebarDropdown 
               title="Categories" 

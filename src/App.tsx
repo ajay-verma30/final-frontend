@@ -30,6 +30,7 @@ import { CartProvider } from "./context/CartContext";
 import Cart from "./shop/Cart";
 import SubShop from "./shop/SubShop";
 import Contact from "./shop/Contact";
+import SanmarImport from "./sanmar/Sanmar";
 
 function App() {
   return (
@@ -100,7 +101,7 @@ function App() {
         <Route path="/reset" element={<ResetPassword />} />
         <Route path="/set-password" element={<SetPassword />} />
 
-        {/* ================= PROTECTED / ADMIN ROUTES ================= */}
+        {/* ================= PROTECTED / ADMIN-SUPER ROUTES ================= */}
         <Route
           path="/dashboard"
           element={
@@ -109,6 +110,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/sanmar"
+          element={
+            <ProtectedRoute>
+              <SanmarImport/>
+            </ProtectedRoute>
+          }
+          />
         <Route
           path="/organizations"
           element={
