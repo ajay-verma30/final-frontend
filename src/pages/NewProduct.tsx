@@ -16,7 +16,7 @@ interface ProductData {
   gender: string;
   base_price: string;
   category_id: string;
-  subcategory_id: string;
+  subcategory_id?: string;
   is_public: number;
   has_variants: number;
 }
@@ -101,7 +101,9 @@ const NewProduct: React.FC = () => {
       formData.append("gender",            productData.gender || "UNISEX");
       formData.append("base_price",        String(parseFloat(productData.base_price || "0")));
       formData.append("category_id",       productData.category_id);
-      formData.append("subcategory_id",    productData.subcategory_id);
+      if (productData.subcategory_id) {
+      formData.append("subcategory_id",  productData.subcategory_id);
+    }
       formData.append("is_public",         String(productData.is_public));
       formData.append("has_variants",      String(productData.has_variants));
       formData.append("is_active",         "1");
@@ -175,8 +177,8 @@ const NewProduct: React.FC = () => {
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Subcategory *</label>
-                    <select required disabled={!productData.category_id} value={productData.subcategory_id} onChange={(e) => setProductData({ ...productData, subcategory_id: e.target.value })} className={`p-2.5 border rounded-lg outline-none transition-all ${!productData.category_id ? "bg-slate-100 text-slate-400" : "bg-slate-50"}`}>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Subcategory (Optional)</label>
+                    <select  disabled={!productData.category_id} value={productData.subcategory_id} onChange={(e) => setProductData({ ...productData, subcategory_id: e.target.value })} className={`p-2.5 border rounded-lg outline-none transition-all ${!productData.category_id ? "bg-slate-100 text-slate-400" : "bg-slate-50"}`}>
                       <option value="">Select Subcategory</option>
                       {subcategories.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
