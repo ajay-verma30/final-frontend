@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Send, CheckCircle2, Building2, Users, Tag, MessageSquare } from "lucide-react";
 import ShopNavbar from "./components/ShopNavbar";
 import Footer from "./components/Footer";
+import api from "../api/axiosInstance";
 
 const CATEGORY_OPTIONS = [
   "Apparel",
