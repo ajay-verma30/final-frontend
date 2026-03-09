@@ -46,11 +46,15 @@ const Contact = () => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: wire to your API endpoint
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  try {
+    await api.post("/api/contact/quote", form);
     setSubmitted(true);
-  };
+  } catch (err) {
+    alert("Something went wrong. Please try again.");
+  }
+};
 
   const isValid =
     form.companyName.trim() &&
@@ -86,6 +90,9 @@ const Contact = () => {
     marginBottom: "8px",
     fontFamily: "'DM Sans', system-ui, sans-serif",
   };
+
+
+  
 
   return (
     <div
