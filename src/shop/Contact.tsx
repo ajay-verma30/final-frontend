@@ -17,6 +17,8 @@ const CATEGORY_OPTIONS = [
 
 interface FormState {
   companyName: string;
+  email: string;
+  phone: string;
   category: string;
   quantity: string;
   message: string;
@@ -33,11 +35,13 @@ const QUANTITY_RANGES = [
 const Contact = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState<FormState>({
-    companyName: "",
-    category: "",
-    quantity: "",
-    message: "",
-  });
+  companyName: "",
+  email: "",
+  phone: "",
+  category: "",
+  quantity: "",
+  message: "",
+});
   const [submitted, setSubmitted] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
 
@@ -58,10 +62,11 @@ const handleSubmit = async (e: React.FormEvent) => {
 };
 
   const isValid =
-    form.companyName.trim() &&
-    form.category &&
-    form.quantity &&
-    form.message.trim();
+  form.companyName.trim() &&
+  form.email.trim() &&
+  form.category &&
+  form.quantity &&
+  form.message.trim();
 
   /* ── shared input style helper ── */
   const inputStyle = (name: string): React.CSSProperties => ({
@@ -312,6 +317,43 @@ const handleSubmit = async (e: React.FormEvent) => {
                     style={inputStyle("companyName")}
                   />
                 </div>
+
+                {/* Email */}
+<div>
+  <label style={labelStyle}>
+    <Send size={12} color="#818cf8" />
+    Email Address
+  </label>
+  <input
+    type="email"
+    name="email"
+    value={form.email}
+    onChange={handleChange}
+    onFocus={() => setFocused("email")}
+    onBlur={() => setFocused(null)}
+    placeholder="you@company.com"
+    required
+    style={inputStyle("email")}
+  />
+</div>
+
+{/* Phone */}
+<div>
+  <label style={labelStyle}>
+    <Users size={12} color="#818cf8" />
+    Phone Number
+  </label>
+  <input
+    type="tel"
+    name="phone"
+    value={form.phone}
+    onChange={handleChange}
+    onFocus={() => setFocused("phone")}
+    onBlur={() => setFocused(null)}
+    placeholder="+1-555-000-0000"
+    style={inputStyle("phone")}
+  />
+</div>
 
                 {/* Category interest */}
                 <div>
