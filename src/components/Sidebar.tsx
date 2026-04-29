@@ -11,7 +11,6 @@ const Sidebar: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const role = user?.role?.toUpperCase();
-  console.log(user)
   const orgId = user?.org_id;
 
   return (
