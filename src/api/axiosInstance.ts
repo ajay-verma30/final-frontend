@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: "https://final-backend-production-d094.up.railway.app",
+  baseURL: "https://final-backend-production-b5b0.up.railway.app/",
   withCredentials: true
 });
 
